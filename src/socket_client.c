@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 void print_usage() {
         printf("Usage:\n\t./client <server_host> <server_port>\n");
@@ -25,8 +26,6 @@ int main(int argc, char** argv) {
 
         const char *server_host = argv[1];
         int server_port = atoi(argv[2]);
-
-        
 
         /* Restricts the returned addresses to IPv4 TCP sockets */
         struct addrinfo hints;
