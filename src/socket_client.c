@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
         struct sockaddr_in server_addr = { 0 };
         server_addr.sin_family = AF_INET;
         server_addr.sin_port = htons(8082);
-        inet_pton(AF_INET, "10.214.135.60", &server_addr.sin_addr);
+        inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr);
         // struct sockaddr_in *res_in = (struct sockaddr_in *)result->ai_addr;
         // server_addr.sin_family = res_in->sin_family;
         // server_addr.sin_addr = res_in->sin_addr;
