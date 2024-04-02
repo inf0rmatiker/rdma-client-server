@@ -7,6 +7,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <errno.h>
 
 void print_usage() {
         printf("Usage:\n\t./client <server_host> <server_port>\n");
@@ -77,7 +78,7 @@ int main(int argc, char** argv) {
         int res = 0;
         res = connect(client_sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
         if (res < 0) {
-                printf("Connection failed\n");
+                printf("Connection failed: %s\n", sterror(errno));
                 return -1;
         }
 
