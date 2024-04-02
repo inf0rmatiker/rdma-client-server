@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
 
         /* Connect to server socket */
         int res = 0;
-        res = connect(client_sockfd, result->ai_addr, sizeof(result->ai_addr));
+        res = connect(client_sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
         if (res < 0) {
                 printf("Connection failed\n");
                 return -1;
