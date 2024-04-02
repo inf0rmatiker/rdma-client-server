@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
         }
 
         const char *server_host = argv[1];
-        short server_port = atos(argv[2]);
+        int server_port = atoi(argv[2]);
 
         /* Restricts the returned addresses to IPv4 TCP sockets */
         struct addrinfo hints;
