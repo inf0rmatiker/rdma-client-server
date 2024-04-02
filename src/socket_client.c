@@ -23,15 +23,15 @@ int main(int argc, char** argv) {
                 printf("argv[%d]=%s\n", i, argv[i]);
         }
 
-        int server_port = atoi(argv[2]);
         const char *server_host = argv[1];
+        int server_port = atoi(argv[2]);
         struct sockaddr_in server_addr;
 
         /* Zero out server's sockaddr_in struct, and populate it */
         memset(&server_addr, 0, sizeof(server_addr));
 
         /* Create a socket file descriptor */
-        //int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        int client_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
         /* Restricts the returned addresses to IPv4 TCP sockets */
         struct addrinfo hints;
@@ -50,16 +50,22 @@ int main(int argc, char** argv) {
         /* Iterate over linked-list and check information */
         current = result;
         char addrstr[256];
+        int result_count = 0;
         while (current) {
+                result_count++;
                 if (current->ai_family == AF_INET) {
                         ptr = &((struct sockaddr_in *) current->ai_addr)
                                         ->sin_addr;
                         inet_ntop(current->ai_family, ptr, addrstr, 256);
-                        printf ("IPv4 address: %s (%s)\n", addrstr, 
+                        printf ("IPv4 address: %s (%s)\n", addrstr,
                                 current->ai_canonname);
                 }
                 current = current->ai_next;
         }
+
+        inet_ntop(result->ai_family, ptr, addrstr, 256);
+        printf("Found a total of %d IPv4 results for %s. Using %s.\n",
+               result_count, server_host, addrstr);
 
         /* Free our addrinfo linked-list of results */
         freeaddrinfo(result);

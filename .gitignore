@@ -53,3 +53,7 @@ dkms.conf
 
 # VSCode stuff
 .vscode/
+
+# Compiled binaries
+client
+server
