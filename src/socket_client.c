@@ -65,7 +65,6 @@ int main(int argc, char** argv) {
         struct sockaddr_in *res_in = (struct sockaddr_in *)result->ai_addr;
         server_addr.sin_family = res_in->sin_family;
         server_addr.sin_addr = res_in->sin_addr;
-        server_addr.sin_len = res_in->sin_len;
         server_addr.sin_port = htons(server_port);
 
         /* Create a socket file descriptor */
