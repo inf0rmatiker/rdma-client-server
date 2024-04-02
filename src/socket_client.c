@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
         }
 
         const char *server_host = argv[1];
-        int server_port = atoi(argv[2]);
+        short server_port = atos(argv[2]);
 
         /* Restricts the returned addresses to IPv4 TCP sockets */
         struct addrinfo hints;
@@ -65,6 +65,8 @@ int main(int argc, char** argv) {
 
         /* Connect to server socket */
         int res = 0;
+        struct sockaddr_in *server_addr = (struct sockaddr_in *) result->ai_addr;
+        server_addr->sin_port = htons(server_port);
         res = connect(client_sockfd, result->ai_addr, sizeof(result->ai_addr));
         if (res < 0) {
                 printf("Connection failed\n");
