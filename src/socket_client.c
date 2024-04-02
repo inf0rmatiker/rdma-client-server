@@ -64,10 +64,17 @@ int main(int argc, char** argv) {
         int client_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
         /* Connect to server socket */
-        connect(client_sockfd, result->ai_addr, sizeof(result->ai_addr));
+        int res = 0;
+        res = connect(client_sockfd, result->ai_addr, sizeof(result->ai_addr));
+        if (res < 0) {
+                printf("Connection failed\n");
+                return -1;
+        }
 
         char* hello = "Hello from client";
-        send(client_sockfd, hello, strlen(hello), 0);
+
+        int bytes_sent = send(client_sockfd, hello, strlen(hello), 0);
+        printf("Sent %d bytes\n", bytes_sent);
 
 
         /* Cleanup our client sockfd */
