@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
         int res = 0;
         res = connect(client_sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
         if (res < 0) {
-                printf("Connection failed: %s\n", sterror(errno));
+                printf("Connection failed: %s\n", strerror(errno));
                 return -1;
         }
 
