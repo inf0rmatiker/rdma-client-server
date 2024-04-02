@@ -60,13 +60,19 @@ int main(int argc, char** argv) {
         printf("Found a total of %d results for %s. Using %s.\n",
                result_count, server_host, addrstr);
 
+        /* Fill out server sockaddr_in struct from result */
+        struct sockaddr_in server_addr = { 0 };
+        struct sockaddr_in *res_in = (struct sockaddr_in *)result->ai_addr;
+        server_addr.sin_family = res_in->sin_family;
+        server_addr.sin_addr = res_in->sin_addr;
+        server_addr.sin_len = res_in->sin_len;
+        server_addr.sin_port = htons(server_port);
+
         /* Create a socket file descriptor */
         int client_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
         /* Connect to server socket */
         int res = 0;
-        struct sockaddr_in *server_addr = (struct sockaddr_in *) result->ai_addr;
-        server_addr->sin_port = htons(server_port);
         res = connect(client_sockfd, result->ai_addr, sizeof(result->ai_addr));
         if (res < 0) {
                 printf("Connection failed\n");
