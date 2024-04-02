@@ -25,13 +25,8 @@ int main(int argc, char** argv) {
 
         const char *server_host = argv[1];
         int server_port = atoi(argv[2]);
-        struct sockaddr_in server_addr;
 
-        /* Zero out server's sockaddr_in struct, and populate it */
-        memset(&server_addr, 0, sizeof(server_addr));
-
-        /* Create a socket file descriptor */
-        int client_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        
 
         /* Restricts the returned addresses to IPv4 TCP sockets */
         struct addrinfo hints;
@@ -57,15 +52,27 @@ int main(int argc, char** argv) {
                         ptr = &((struct sockaddr_in *) current->ai_addr)
                                         ->sin_addr;
                         inet_ntop(current->ai_family, ptr, addrstr, 256);
-                        printf ("IPv4 address: %s (%s)\n", addrstr,
-                                current->ai_canonname);
+                        printf ("IPv4 address: %s\n", addrstr);
                 }
                 current = current->ai_next;
         }
 
         inet_ntop(result->ai_family, ptr, addrstr, 256);
-        printf("Found a total of %d IPv4 results for %s. Using %s.\n",
+        printf("Found a total of %d results for %s. Using %s.\n",
                result_count, server_host, addrstr);
+
+        /* Create a socket file descriptor */
+        int client_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+        /* Connect to server socket */
+        connect(client_sockfd, result->ai_addr, sizeof(result->ai_addr));
+
+        char* hello = "Hello from client";
+        send(client_sockfd, hello, strlen(hello), 0);
+
+
+        /* Cleanup our client sockfd */
+        close(client_sockfd);
 
         /* Free our addrinfo linked-list of results */
         freeaddrinfo(result);

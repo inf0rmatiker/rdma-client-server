@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
         char buffer[256] = { '\0' };
 
         /* Read data from the client's sockfd into the buffer */
-        int n = read(client_sockfd, &buffer, 255);
+        int n = read(client_sockfd, &buffer, 256);
 
         /* Print buffer's contents */
         printf("Client: %s\n", buffer);
