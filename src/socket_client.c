@@ -62,10 +62,13 @@ int main(int argc, char** argv) {
 
         /* Fill out server sockaddr_in struct from result */
         struct sockaddr_in server_addr = { 0 };
-        struct sockaddr_in *res_in = (struct sockaddr_in *)result->ai_addr;
-        server_addr.sin_family = res_in->sin_family;
-        server_addr.sin_addr = res_in->sin_addr;
-        server_addr.sin_port = htons(server_port);
+        server_addr.sin_family = AF_INET;
+        server_addr.sin_port = htons(8082);
+        inet_pton(AF_INET, "10.214.135.60", &server_addr.sin_addr);
+        // struct sockaddr_in *res_in = (struct sockaddr_in *)result->ai_addr;
+        // server_addr.sin_family = res_in->sin_family;
+        // server_addr.sin_addr = res_in->sin_addr;
+        // server_addr.sin_port = htons(server_port);
 
         /* Create a socket file descriptor */
         int client_sockfd = socket(AF_INET, SOCK_STREAM, 0);
