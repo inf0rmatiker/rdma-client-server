@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <errno.h>
 
+static const int MAX_MSG_SIZE = 256;
+
 void print_usage() {
         printf("Usage:\n\t./client <server_host> <server_port>\n");
         printf("Example:\n\t./client 10.214.131.9 8082\n");
@@ -28,24 +30,22 @@ int main(int argc, char** argv) {
         const char *server_host = argv[1];
         int server_port = atoi(argv[2]);
 
-        /* Restricts the returned addresses to IPv4 TCP sockets */
-        struct addrinfo hints;
-        memset(&hints, 0, sizeof(hints));
+        /* hints restricts the returned addresses to IPv4 TCP sockets */
+        struct addrinfo hints = { 0 };
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;
-
-        struct addrinfo *current, *result;
-        void *ptr;  // Stores the cast sockaddr_in->sin_addr field of a result
 
         /* Get a linked-list of server addrinfo objects based on hints' criteria
          * and server host name.
          */
+        struct addrinfo *current, *result;
         getaddrinfo(server_host, NULL, &hints, &result);
 
         /* Iterate over linked-list and check information */
         current = result;
         char addrstr[256];
         int result_count = 0;
+        void *ptr;  // Stores the cast sockaddr_in->sin_addr field of a result
         while (current) {
                 result_count++;
                 if (current->ai_family == AF_INET) {
@@ -57,26 +57,21 @@ int main(int argc, char** argv) {
                 current = current->ai_next;
         }
 
+        ptr = &((struct sockaddr_in *) result->ai_addr)->sin_addr;
         inet_ntop(result->ai_family, ptr, addrstr, 256);
         printf("Found a total of %d results for %s. Using %s.\n",
                result_count, server_host, addrstr);
 
         /* Fill out server sockaddr_in struct from result */
-        struct sockaddr_in server_addr = { 0 };
-        server_addr.sin_family = AF_INET;
-        server_addr.sin_port = htons(8082);
-        inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr);
-        // struct sockaddr_in *res_in = (struct sockaddr_in *)result->ai_addr;
-        // server_addr.sin_family = res_in->sin_family;
-        // server_addr.sin_addr = res_in->sin_addr;
-        // server_addr.sin_port = htons(server_port);
+        struct sockaddr_in *server_sin = (struct sockaddr_in *)result->ai_addr;
+        server_sin->sin_port = htons(server_port);
 
         /* Create a socket file descriptor */
         int client_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
         /* Connect to server socket */
         int res = 0;
-        res = connect(client_sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+        res = connect(client_sockfd, result->ai_addr, sizeof(result->ai_addr));
         if (res < 0) {
                 printf("Connection failed: %s\n", strerror(errno));
                 return -1;
