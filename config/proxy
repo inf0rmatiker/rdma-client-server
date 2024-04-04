@@ -1,0 +1,5 @@
+PROXY_ENABLED="yes"
+HTTP_PROXY="http://proxy.houston.hpecorp.net:8080/"
+HTTPS_PROXY="http://proxy.houston.hpecorp.net:8080/"
+FTP_PROXY="http://proxy.houston.hpecorp.net:8080/"
+NO_PROXY="localhost,127.0.0.1,.us.cray.com,.americas.cray.com,.dev.cray.com,.eag.rdlabs.hpecorp.net"
