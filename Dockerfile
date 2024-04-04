@@ -6,7 +6,8 @@ RUN zypper install -y gcc make tar zip vim
 
 WORKDIR /work
 COPY Makefile .
-COPY src /work/
+RUN mkdir /work/src
+COPY src/ /work/src/
 
 RUN make server
 
