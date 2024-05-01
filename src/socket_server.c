@@ -5,12 +5,12 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include "socket_common.h"
 
 void print_usage() {
         printf("Usage:\n\t./socket-server <listen_port>\n");
         printf("Example:\n\t./socket-server 8082\n");
 }
-
 
 int main(int argc, char** argv) {
 
@@ -49,11 +49,19 @@ int main(int argc, char** argv) {
         int client_sockfd = accept(sockfd, (struct sockaddr *) &client_addr,
                                    &cli_addr_len);
 
+        char client_ip_str[256];
+        inet_ntop(client_addr.sin_family, &client_addr.sin_addr, client_ip_str, 256);
+        printf("Accepted a client connection from %s\n", client_ip_str);
+
         /* Allocate a static buffer and to read into */
-        char buffer[256] = { '\0' };
+        char buffer[MAX_MSG_SIZE] = { '\0' };
 
         /* Read data from the client's sockfd into the buffer */
-        int n = read(client_sockfd, &buffer, 256);
+        int n = read(client_sockfd, &buffer, MAX_MSG_SIZE);
+        if (n < 0) {
+                printf("Received %d from read()\n", n);
+                exit(1);
+        }
 
         /* Print buffer's contents */
         printf("Client: %s\n", buffer);

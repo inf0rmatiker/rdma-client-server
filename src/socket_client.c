@@ -8,8 +8,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <errno.h>
-
-static const int MAX_MSG_SIZE = 256;
+#include "socket_common.h"
 
 void print_usage() {
         printf("Usage:\n\t./socket-client <server_host> <server_port>\n");
@@ -56,7 +55,9 @@ int main(int argc, char** argv) {
                 }
                 current = current->ai_next;
         }
+        current = NULL;
 
+        /* Default to using the first result in linked-list */
         ptr = &((struct sockaddr_in *) result->ai_addr)->sin_addr;
         inet_ntop(result->ai_family, ptr, addrstr, 256);
         printf("Found a total of %d results for %s. Using %s.\n",
