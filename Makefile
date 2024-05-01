@@ -1,10 +1,10 @@
 .PHONY: clean
 
-client:
-	gcc -o client src/socket_client.c
+socket-client:
+	gcc -o socket-client src/socket_client.c
 
-server:
-	gcc -o server src/socket_server.c
+socket-server:
+	gcc -o socket-server src/socket_server.c
 
 clean:
-	rm -rf *.o client server
+	rm -rf *.o *-client *-server

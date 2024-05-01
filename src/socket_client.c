@@ -12,8 +12,8 @@
 static const int MAX_MSG_SIZE = 256;
 
 void print_usage() {
-        printf("Usage:\n\t./client <server_host> <server_port>\n");
-        printf("Example:\n\t./client 10.214.131.9 8082\n");
+        printf("Usage:\n\t./socket-client <server_host> <server_port>\n");
+        printf("Example:\n\t./socket-client 10.214.131.9 8082\n");
 }
 
 int main(int argc, char** argv) {

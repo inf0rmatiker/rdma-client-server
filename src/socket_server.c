@@ -7,8 +7,8 @@
 #include <unistd.h>
 
 void print_usage() {
-        printf("Usage:\n\t./server <listen_port>\n");
-        printf("Example:\n\t./server 8082\n");
+        printf("Usage:\n\t./socket-server <listen_port>\n");
+        printf("Example:\n\t./socket-server 8082\n");
 }
 
 
