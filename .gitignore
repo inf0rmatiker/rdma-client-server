@@ -55,5 +55,5 @@ dkms.conf
 .vscode/
 
 # Compiled binaries
-client
-server
+*-client
+*-server
