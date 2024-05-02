@@ -34,45 +34,14 @@ int main(int argc, char **argv) {
                         server_port);
         }
 
-        /* hints restricts the returned addresses to IPv4 TCP sockets */
-        struct addrinfo hints = { 0 };
-        hints.ai_family = AF_INET;
-        hints.ai_socktype = SOCK_STREAM;
+        /* Set up server sockaddr_in struct */
+        struct sockaddr_in server_addr;
+        memset(&server_addr, 0, sizeof(server_addr));
+        server_addr.sin_family = AF_INET;
+        server_addr.sin_addr.s_addr = inet_addr(server_host);
+        server_addr.sin_port = htons(server_port);
 
-        /* Get a linked-list of server addrinfo objects based on hints' criteria
-         * and server host name.
-         */
-        struct addrinfo *current, *result;
-        getaddrinfo(server_host, NULL, &hints, &result);
-
-        /* Iterate over linked-list and check information */
-        current = result;
-        char addrstr[256];
-        int result_count = 0;
-        void *ptr;  // Stores the cast sockaddr_in->sin_addr field of a result
-        while (current) {
-                result_count++;
-                if (current->ai_family == AF_INET) {
-                        ptr = &((struct sockaddr_in *) current->ai_addr)
-                                        ->sin_addr;
-                        inet_ntop(current->ai_family, ptr, addrstr, 256);
-                        printf ("IPv4 address: %s\n", addrstr);
-                }
-                current = current->ai_next;
-        }
-        current = NULL;
-
-        /* Default to using the first result in linked-list */
-        ptr = &((struct sockaddr_in *) result->ai_addr)->sin_addr;
-        inet_ntop(result->ai_family, ptr, addrstr, 256);
-        printf("Found a total of %d results for %s. Using %s.\n",
-               result_count, server_host, addrstr);
-
-        /* Fill out server sockaddr_in struct from result */
-        struct sockaddr_in *server_sin = (struct sockaddr_in *)result->ai_addr;
-        server_sin->sin_port = htons(server_port);
-
-        /* Create a socket file descriptor */
+        /* Create a client socket file descriptor */
         int client_sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (client_sockfd == -1) {
                 fprintf(stderr, "Unable to create client socket: %s\n",
@@ -82,7 +51,8 @@ int main(int argc, char **argv) {
 
         /* Connect to server socket */
         int res = 0;
-        res = connect(client_sockfd, result->ai_addr, sizeof(result->ai_addr));
+        res = connect(client_sockfd, (struct sockaddr*)&server_addr,
+                      sizeof(server_addr));
         if (res < 0) {
                 printf("Connection failed: %s\n", strerror(errno));
                 return -1;
@@ -96,9 +66,6 @@ int main(int argc, char **argv) {
 
         /* Cleanup our client sockfd */
         close(client_sockfd);
-
-        /* Free our addrinfo linked-list of results */
-        freeaddrinfo(result);
 
         return 0;
 }
