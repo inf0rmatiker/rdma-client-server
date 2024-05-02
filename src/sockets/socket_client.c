@@ -74,6 +74,11 @@ int main(int argc, char **argv) {
 
         /* Create a socket file descriptor */
         int client_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (client_sockfd == -1) {
+                fprintf(stderr, "Unable to create client socket: %s\n",
+                        strerror(errno));
+                exit(1);
+        }
 
         /* Connect to server socket */
         int res = 0;
