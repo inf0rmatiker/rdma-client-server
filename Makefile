@@ -1,5 +1,8 @@
 .PHONY: clean sockets
 
+# Default target if just "make" is specified
+.DEFAULT_GOAL := all
+
 SOCKETS_SRC_DIR=./src/sockets
 SOCKETS_INCLUDE=./src/sockets
 CC=gcc
@@ -23,6 +26,8 @@ socket-server: $(SOCKETS_SERVER_OBJ)
 
 socket-client: $(SOCKETS_CLIENT_OBJ)
 	$(CC) -o $@ $^ $(CFLAGS)
+
+all: socket-server socket-client
 
 clean:
 	rm -rf $(SOCKETS_SRC_DIR)/*.o *-client *-server
