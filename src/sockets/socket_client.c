@@ -16,11 +16,6 @@ void print_usage() {
         printf("Example:\n\t./socket-client 10.214.131.9 8082\n");
 }
 
-bool is_valid_port(int port) {
-        return port >= 1024 && port <= 49151;
-}
-
-
 int main(int argc, char **argv) {
 
         if (argc < 2) {
