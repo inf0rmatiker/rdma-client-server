@@ -1,10 +1,14 @@
-.PHONY: clean
+.PHONY: clean sockets
 
-socket-client:
-	gcc -o socket-client src/socket_client.c
+SOCKETS_SRC_DIR = src/sockets
+SOCKETS_INCLUDE = src/sockets
+CC=gcc
+CFLAGS=-I$(SOCKETS_INCLUDE)
 
-socket-server:
-	gcc -o socket-server src/socket_server.c
+sockets: $(SOCKETS_OBJ)
+	$(CC) -o socket-server $(SOCKETS_SRC_DIR)/socket_server.c
+	$(CC) -o socket-client $(SOCKETS_SRC_DIR)/socket_client.c
+
 
 clean:
-	rm -rf *.o *-client *-server
+	rm -rf $(SOCKETS_SRC_DIR)/*.o *-client *-server
