@@ -16,6 +16,23 @@ void print_usage() {
         printf("Example:\n\t./socket-client 10.214.131.9 8082\n");
 }
 
+void send_message() {
+
+}
+
+void read_stdin(char *buf, int max_size) {
+        if (!buf) {
+                return;
+        }
+
+        char *str_read = fgets(buf, max_size, stdin);
+        if (!str_read) {
+                fprintf(stderr, "Unable to read from stdin: %s\n",
+                        strerror(errno));
+                return;
+        }
+}
+
 int main(int argc, char **argv) {
 
         if (argc < 2) {
@@ -50,22 +67,25 @@ int main(int argc, char **argv) {
         }
 
         /* Connect to server socket */
-        int res = 0;
-        res = connect(client_sockfd, (struct sockaddr*)&server_addr,
-                      sizeof(server_addr));
+        int res = connect(client_sockfd, (struct sockaddr*)&server_addr,
+                          sizeof(server_addr));
         if (res < 0) {
                 printf("Connection failed: %s\n", strerror(errno));
                 return -1;
         }
 
-        char* hello = "Hello from client";
+        char *send_buffer = calloc(sizeof(char), MAX_MSG_SIZE+1);
+        read_stdin(send_buffer, MAX_MSG_SIZE);
 
-        int bytes_sent = send(client_sockfd, hello, strlen(hello), 0);
+        int bytes_sent = send(client_sockfd, send_buffer, strlen(send_buffer), 0);
         printf("Sent %d bytes\n", bytes_sent);
-
 
         /* Cleanup our client sockfd */
         close(client_sockfd);
+
+        /* Free our send buffer */
+        free(send_buffer);
+        send_buffer = NULL;
 
         return 0;
 }
