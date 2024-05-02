@@ -1,16 +1,61 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <errno.h>
 #include "socket_common.h"
 
 void print_usage() {
         printf("Usage:\n\t./socket-server <listen_port>\n");
         printf("Example:\n\t./socket-server 8082\n");
+}
+
+/* accept_connection() listens on the server socket for incoming client
+ * connections, accepts one, then returns the resulting socket file
+ * descriptor.
+ */
+int accept_connection(int server_sockfd) {
+        struct sockaddr_in client_addr;
+
+        /* Extract a connection request from the queue of pending connections */
+        socklen_t cli_addr_len = sizeof(client_addr);
+        int client_sockfd = accept(server_sockfd, (struct sockaddr *) &client_addr,
+                                   &cli_addr_len);
+
+        char client_ip_str[256];
+        inet_ntop(client_addr.sin_family, &client_addr.sin_addr, client_ip_str,
+                  256);
+        printf("Accepted a client connection from %s\n", client_ip_str);
+        return client_sockfd;
+}
+
+/* read_client() loops on the blocking call read(), printing any messages
+ * received, and notifies the user when a client has disconnected.
+ */
+void read_client(int client_sockfd) {
+        /* Allocate a static buffer and to read into */
+        char buffer[MAX_MSG_SIZE+1] = { '\0' };
+
+        while (true) {
+                /* Read data from the client's sockfd into the buffer */
+                int n = read(client_sockfd, &buffer, MAX_MSG_SIZE);
+                if (n == 0) {
+                        printf("Client has disconnected.\n");
+                        break;
+                }
+                if (n == -1) {
+                        fprintf(stderr, "Error reading message: %s\n",
+                                strerror(errno));
+                }
+
+                /* Print buffer's contents */
+                printf("Client: %s\n", buffer);
+        }
 }
 
 int main(int argc, char** argv) {
@@ -25,6 +70,11 @@ int main(int argc, char** argv) {
         }
 
         int server_port = atoi(argv[1]);
+        if (!is_valid_port(server_port)) {
+                fprintf(stderr, "'%d' is an invalid server port choice\n",
+                        server_port);
+                exit(1);
+        }
         int max_client_connections = 64;
 
         /* Stores internet address information */
@@ -38,6 +88,11 @@ int main(int argc, char** argv) {
 
         /* Create a socket file descriptor */
         int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (sockfd == -1) {
+                fprintf(stderr, "Unable to create server socket: %s\n",
+                        strerror(errno));
+                exit(1);
+        }
 
         /* Bind to that socket */
         bind(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr));
@@ -45,30 +100,15 @@ int main(int argc, char** argv) {
         /* Listen to the socket */
         listen(sockfd, max_client_connections);
 
-        /* Extract a connection request from the queue of pending connections */
-        socklen_t cli_addr_len = sizeof(client_addr);
-        int client_sockfd = accept(sockfd, (struct sockaddr *) &client_addr,
-                                   &cli_addr_len);
+        while (true) {
+                /* Accept a client connection */
+                int client_sockfd = accept_connection(sockfd);
 
-        char client_ip_str[256];
-        inet_ntop(client_addr.sin_family, &client_addr.sin_addr, client_ip_str, 256);
-        printf("Accepted a client connection from %s\n", client_ip_str);
+                read_client(client_sockfd);
 
-        /* Allocate a static buffer and to read into */
-        char buffer[MAX_MSG_SIZE] = { '\0' };
-
-        /* Read data from the client's sockfd into the buffer */
-        int n = read(client_sockfd, &buffer, MAX_MSG_SIZE);
-        if (n < 0) {
-                printf("Received %d from read()\n", n);
-                exit(1);
+                /* Close client socket file descriptor */
+                close(client_sockfd);
         }
-
-        /* Print buffer's contents */
-        printf("Client: %s\n", buffer);
-
-        /* Close client socket file descriptor */
-        close(client_sockfd);
 
         /* Close listen socket file descriptor */
         close(sockfd);

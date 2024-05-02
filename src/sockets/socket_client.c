@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdbool.h>
 #include "socket_common.h"
 
 void print_usage() {
@@ -15,7 +16,12 @@ void print_usage() {
         printf("Example:\n\t./socket-client 10.214.131.9 8082\n");
 }
 
-int main(int argc, char** argv) {
+bool is_valid_port(int port) {
+        return port >= 1024 && port <= 49151;
+}
+
+
+int main(int argc, char **argv) {
 
         if (argc < 2) {
                 print_usage();
@@ -28,6 +34,10 @@ int main(int argc, char** argv) {
 
         const char *server_host = argv[1];
         int server_port = atoi(argv[2]);
+        if (!is_valid_port(server_port)) {
+                fprintf(stderr, "'%d' is an invalid server port choice\n",
+                        server_port);
+        }
 
         /* hints restricts the returned addresses to IPv4 TCP sockets */
         struct addrinfo hints = { 0 };
