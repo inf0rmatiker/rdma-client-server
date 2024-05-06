@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <netdb.h>
-#include <rdma/rdma_cm.h>
+#include "rdma/rdma_cma.h"
 
 int main(int argc, char **argv) {
 
