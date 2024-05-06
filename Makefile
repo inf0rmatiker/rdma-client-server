@@ -5,7 +5,7 @@
 
 CC=gcc
 
-RDMA_INCLUDE=/usr/src/ofa_kernel/x86_64/5.14.21-150500.53-default/include
+RDMA_INCLUDE=/root/rdma-core/build/include/
 
 SOCKETS_SRC_DIR=./src/sockets
 SOCKETS_INCLUDE=./src/sockets
@@ -31,7 +31,7 @@ socket-client: $(SOCKETS_CLIENT_OBJ)
 	$(CC) -o $@ $^ $(SOCKETS_CFLAGS)
 
 rdma-server:
-	$(CC) -c rdma-server ./src/rdma/rdma_server.c -I$(RDMA_INCLUDE)
+	$(CC) ./src/rdma/rdma_server.c -o rdma-server -I$(RDMA_INCLUDE)
 
 all: socket-server socket-client
 
