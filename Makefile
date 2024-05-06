@@ -5,7 +5,10 @@
 
 CC=gcc
 
-RDMA_INCLUDE=/root/rdma-core/build/include/
+RDMA_INCLUDE=/usr/include
+RDMA_LIB=rdmacm
+RDMA_LIBDIR=/usr/lib64
+RDMA_SRC_DIR=./src/rdma
 
 SOCKETS_SRC_DIR=./src/sockets
 SOCKETS_INCLUDE=./src/sockets
@@ -31,7 +34,7 @@ socket-client: $(SOCKETS_CLIENT_OBJ)
 	$(CC) -o $@ $^ $(SOCKETS_CFLAGS)
 
 rdma-server:
-	$(CC) ./src/rdma/rdma_server.c -o rdma-server -I$(RDMA_INCLUDE)
+	$(CC) -o $@ -l$(RDMA_LIB) -L$(RDMA_LIBDIR) -I$(RDMA_INCLUDE) $(RDMA_SRC_DIR)/rdma_server.c
 
 all: socket-server socket-client
 
