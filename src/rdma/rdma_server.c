@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
 
         /* Create connection identifier for the RDMA connection */
         struct rdma_cm_id *cm_server_id = NULL;
-        int ret = rdma_create_id(cm_event_channel, &rdma_cm_id, NULL, RDMA_PS_TCP);
+        int ret = rdma_create_id(cm_event_channel, &cm_server_id, NULL, RDMA_PS_TCP);
         if (ret == -1) {
                 fprintf(stderr, "Creating CM id failed with errno: (%s)\n",
                                 strerror(errno));
