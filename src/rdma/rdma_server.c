@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
 		return -errno;
 	}
         printf("RDMA CM event channel is created successfully at %p\n",
-	       cm_event_channel)
+	       cm_event_channel);
 
 
 
