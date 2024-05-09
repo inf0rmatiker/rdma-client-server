@@ -3,6 +3,7 @@
 /* Connection manager data structures for server */
 static struct rdma_event_channel *cm_event_channel;
 static struct rdma_cm_id *cm_server_id, *cm_client_id;
+static struct rdma_addrinfo *res;
 
 void print_usage()
 {
@@ -23,6 +24,7 @@ void cleanup_server()
 
         /* Clean-up and destroy CM event channel */
         rdma_destroy_event_channel(cm_event_channel);
+        rdma_freeaddrinfo(res);
 	printf("Successfully destroyed CM event channel\n");
 }
 
@@ -34,7 +36,37 @@ int main(int argc, char **argv)
         }
 
         const char *server_host = argv[1];
+        const char *port = argv[2];
         int server_port = atoi(argv[2]);
+        int ret = 0;
+
+        struct rdma_addrinfo hints;
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_flags = RAI_PASSIVE;
+        hints.ai_port_space = RDMA_PS_TCP;
+        ret = rdma_getaddrinfo(server_host, port, &hints, &res);
+        if (ret) {
+                fprintf(stderr, "Failed rdma_getaddrinfo with errno: (%s)\n",
+                                strerror(errno));
+                cleanup_server();
+                return -errno;
+        }
+        printf("res = rdma_addrinfo {"
+               "ai_family=%d\n"
+               "ai_qp_type=%d\n"
+               "ai_src_canonname=%s\n"
+               "ai_dst_canonname=%s\n"
+               "ai_route_len=%d\n"
+               "}\n",
+               res->ai_family,
+               res->ai_qp_type,
+               res->ai_src_canonname,
+               res->ai_dst_canonname,
+               res->ai_route_len
+        );
+
+        exit(0);
+
 
         /* Create CM event channel for asynchronous communication events */
         cm_event_channel = rdma_create_event_channel();
@@ -48,7 +80,7 @@ int main(int argc, char **argv)
 
         /* Create connection identifier for the RDMA connection */
         struct rdma_cm_id *cm_server_id = NULL;
-        int ret = rdma_create_id(cm_event_channel, &cm_server_id, NULL, RDMA_PS_TCP);
+        ret = rdma_create_id(cm_event_channel, &cm_server_id, NULL, RDMA_PS_TCP);
         if (ret == -1) {
                 fprintf(stderr, "Creating CM id failed with errno: (%s)\n",
                                 strerror(errno));
