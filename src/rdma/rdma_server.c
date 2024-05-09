@@ -43,7 +43,7 @@ int main(int argc, char **argv)
         struct rdma_addrinfo hints;
         memset(&hints, 0, sizeof(hints));
         hints.ai_flags = RAI_PASSIVE;
-        hints.ai_port_space = RDMA_PS_TCP;
+        hints.ai_port_space = RDMA_PS_IPOIB;
         ret = rdma_getaddrinfo(server_host, port, &hints, &res);
         if (ret) {
                 fprintf(stderr, "Failed rdma_getaddrinfo with errno: (%s)\n",
