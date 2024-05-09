@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <rdma/rdma_cma.h>
 #include <rdma/rdma_verbs.h>
+#include "rdma_common.h"
 
 /* Connection manager data structures for server */
 static struct rdma_event_channel *cm_event_channel;
@@ -15,7 +16,8 @@ static struct rdma_cm_id *cm_server_id, *cm_client_id;
 
 /* Cleans up Connection Manager ID and Event Channel objects before exiting.
  */
-void cleanup_server() {
+void cleanup_server()
+{
         /* Destroy server connection identifier */
         int ret = rdma_destroy_id(cm_server_id);
 	if (ret == -1) {
@@ -28,7 +30,8 @@ void cleanup_server() {
 	printf("Successfully destroyed CM event channel\n");
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 
         /* Create CM event channel for asynchronous communication events */
         cm_event_channel = rdma_create_event_channel();
@@ -88,6 +91,9 @@ int main(int argc, char **argv) {
          * connection management event channel for this event.
 	 */
         struct rdma_cm_event *cm_event = NULL;
+
+
+
 	ret = rdma_get_cm_event(cm_event_channel, &cm_event);
         if (ret == -1) {
                 fprintf(stderr, "Blocking for CM events failed: (%s)\n",

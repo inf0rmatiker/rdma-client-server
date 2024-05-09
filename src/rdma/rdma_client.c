@@ -5,20 +5,22 @@
 #include <getopt.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <rdma/rdma_cma.h>
-#include <netinet/in.h>	
 #include <rdma/rdma_verbs.h>
 
 /* Connection manager data structures for client */
 static struct rdma_event_channel *cm_event_channel;
 static struct rdma_cm_id *cm_client_id, *cm_server_id;
 
-void print_usage() {
+void print_usage()
+{
         printf("Usage:\n\t./rdma-client <client_host> <server_host> <server_port>\n");
         printf("Example:\n\t./rdma-client 192.168.0.106 192.168.0.105 20021\n");
 }
 
-void cleanup_client() {
+void cleanup_client()
+{
         int ret = rdma_destroy_id(cm_client_id);
 	if (ret) {
 		fprintf(stderr, "Failed to destroy client CM id with errno: (%s)\n",
@@ -27,7 +29,8 @@ void cleanup_client() {
         rdma_destroy_event_channel(cm_event_channel);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 
         if (argc < 3) {
                 print_usage();
