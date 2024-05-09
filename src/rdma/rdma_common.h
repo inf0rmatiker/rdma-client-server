@@ -15,6 +15,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <rdma/rdma_cma.h>
+#include <rdma/rdma_verbs.h>
 
 /*
  * process_rdma_event fully checks and processes an RDMA event on the
