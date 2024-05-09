@@ -5,6 +5,9 @@ static struct rdma_event_channel *cm_event_channel;
 static struct rdma_cm_id *cm_client_id, *cm_server_id;
 static struct rdma_addrinfo *res, hints;
 
+/* Memory registration */
+static struct ibv_mr *mr, *send_mr;
+
 void print_usage()
 {
         printf("Usage:\n\t./rdma-client <client_host> <server_host> <server_port>\n");
@@ -13,9 +16,9 @@ void print_usage()
 
 void cleanup_client()
 {
-        rdma_destroy_ep(cm_server_id);
         rdma_destroy_event_channel(cm_event_channel);
         rdma_freeaddrinfo(res);
+        rdma_destroy_ep(cm_server_id);
 }
 
 int run()
@@ -36,7 +39,7 @@ int run()
         memset(&init_attr, 0, sizeof init_attr);
         init_attr.cap.max_send_wr = init_attr.cap.max_recv_wr = 1;
         init_attr.cap.max_send_sge = init_attr.cap.max_recv_sge = 1;
-        init_attr.cap.max_inline_data = 16;
+        init_attr.cap.max_inline_data = 40;
         init_attr.sq_sig_all = 1;
         init_attr.qp_context = cm_server_id;
         ret = rdma_create_ep(&cm_server_id, res, NULL, &init_attr);
@@ -48,6 +51,19 @@ int run()
         }
 
         printf("max_inline_data=%d\n", init_attr.cap.max_inline_data);
+
+        int send_flags = IBV_SEND_INLINE;
+
+        char recv_msg[40];
+        char send_msg[40];
+        mr = rdma_reg_msgs(cm_server_id, recv_msg, 40);
+        if (!mr) {
+                fprintf(stderr, "Failed register receive buffer\n");
+                rdma_dereg_mr(mr);
+                cleanup_client();
+                return -1;
+        }
+
 
         cleanup_client();
         return 0;

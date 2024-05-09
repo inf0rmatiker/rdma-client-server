@@ -45,7 +45,7 @@ int run()
         memset(&init_attr, 0, sizeof init_attr);
         init_attr.cap.max_send_wr = init_attr.cap.max_recv_wr = 1;
         init_attr.cap.max_send_sge = init_attr.cap.max_recv_sge = 1;
-        init_attr.cap.max_inline_data = 16;
+        init_attr.cap.max_inline_data = 40;
         init_attr.sq_sig_all = 1;
         ret = rdma_create_ep(&cm_server_id, res, NULL, &init_attr);
         if (ret) {
