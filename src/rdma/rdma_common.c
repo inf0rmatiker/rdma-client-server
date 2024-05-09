@@ -4,6 +4,7 @@ int process_rdma_event(struct rdma_event_channel *event_channel,
                        struct rdma_cm_event **event,
                        enum rdma_cm_event_type expected_type)
 {
+        /* Block until we receive a communication event */
         int ret = rdma_get_cm_event(event_channel, event);
         if (ret) {
                 fprintf(stderr, "Blocking for CM events failed: (%s)\n",

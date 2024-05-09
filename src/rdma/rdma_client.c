@@ -1,13 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <getopt.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <rdma/rdma_cma.h>
-#include <rdma/rdma_verbs.h>
+#include "rdma_common.h"
 
 /* Connection manager data structures for client */
 static struct rdma_event_channel *cm_event_channel;
@@ -93,29 +84,14 @@ int main(int argc, char **argv)
 
         /* Process CM event for resolving the address */
         struct rdma_cm_event *cm_event = NULL;
+        ret = process_rdma_event(cm_event_channel, &cm_event,
+                                 RDMA_CM_EVENT_ADDR_RESOLVED);
+        if (ret) {
+                fprintf(stderr, "Failed to process CM event\n");
+                cleanup_client();
+                return ret;
+        }
         ret = rdma_get_cm_event(cm_event_channel, &cm_event);
-        if (ret == -1) {
-                fprintf(stderr, "Blocking for CM events failed: (%s)\n",
-                                strerror(errno));
-                cleanup_client();
-                return -errno;
-        }
-
-        /* Check status of the event */
-        if (cm_event->status != 0) {
-                fprintf(stderr, "CM event received with non-zero status: (%d)\n",
-                        cm_event->status);
-                rdma_ack_cm_event(cm_event);
-                cleanup_client();
-                return -1;
-        } else if (cm_event->event != RDMA_CM_EVENT_ADDR_RESOLVED) {
-                fprintf(stderr, "CM event received with unexpected type. Expected %s, but got %s\n",
-                                rdma_event_str(RDMA_CM_EVENT_ADDR_RESOLVED),
-                                rdma_event_str(cm_event->event));
-                rdma_ack_cm_event(cm_event);
-                cleanup_client();
-                return -1;
-        }
 
         /* We got the expected RDMA_CM_EVENT_ADDR_RESOLVED event. We need to
          * acknowledge the event.
@@ -131,7 +107,41 @@ int main(int argc, char **argv)
         }
         printf("Acknowledged RDMA_CM_EVENT_ADDR_RESOLVED event\n");
 
-        printf("Cleaning up and exiting\n");
+        /* Resolve the RDMA route to destination address for our connection */
+        ret = rdma_resolve_route(cm_client_id, timeout_ms);
+        if (ret) {
+                fprintf(stderr, "Failed to resolve RDMA route: (%s)\n",
+                        strerror(errno));
+                cleanup_client();
+                return -errno;
+        }
+
+        /* Wait for CM event for route resolution */
+        ret = process_rdma_event(cm_event_channel, &cm_event,
+                                 RDMA_CM_EVENT_ROUTE_RESOLVED);
+        if (ret) {
+                fprintf(stderr, "Failed to process CM event\n");
+                cleanup_client();
+                return ret;
+        }
+        printf("New CM event of type %s received\n",
+                rdma_event_str(cm_event->event));
+        ret = rdma_ack_cm_event(cm_event);
+        if (ret) {
+                fprintf(stderr, "Failed to ack the RDMA_CM_EVENT_ROUTE_RESOLVED event: (%s)\n",
+                                strerror(errno));
+                cleanup_client();
+                return -errno;
+        }
+        printf("Acknowledged RDMA_CM_EVENT_ROUTE_RESOLVED event\n");
+
+
+        printf("Trying to connect to server at : %s port: %d \n",
+	       inet_ntoa(server_sockaddr.sin_addr),
+	       ntohs(server_sockaddr.sin_port));
+
+
+        printf("Cleaning up client and exiting\n");
         cleanup_client();
         return 0;
 }

@@ -1,18 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <getopt.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <rdma/rdma_cma.h>
-#include <rdma/rdma_verbs.h>
 #include "rdma_common.h"
 
 /* Connection manager data structures for server */
 static struct rdma_event_channel *cm_event_channel;
 static struct rdma_cm_id *cm_server_id, *cm_client_id;
+
+void print_usage()
+{
+        printf("Usage:\n\t./rdma-server <server_host> <server_port>\n");
+        printf("Example:\n\t./rdma-server 192.168.0.106 20021\n");
+}
 
 /* Cleans up Connection Manager ID and Event Channel objects before exiting.
  */
@@ -32,6 +28,13 @@ void cleanup_server()
 
 int main(int argc, char **argv)
 {
+        if (argc < 2) {
+                print_usage();
+                return 1;
+        }
+
+        const char *server_host = argv[1];
+        int server_port = atoi(argv[2]);
 
         /* Create CM event channel for asynchronous communication events */
         cm_event_channel = rdma_create_event_channel();
@@ -60,8 +63,8 @@ int main(int argc, char **argv)
         struct sockaddr_in server_sockaddr;
         memset(&server_sockaddr, 0, sizeof(server_sockaddr));
 	server_sockaddr.sin_family = AF_INET; /* standard IP NET address */
-	server_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY); /* passed address */
-        server_sockaddr.sin_port = htons(20021);
+	server_sockaddr.sin_addr.s_addr = inet_addr(server_host); /* passed address */
+        server_sockaddr.sin_port = htons(server_port);
 
         ret = rdma_bind_addr(cm_server_id, (struct sockaddr *)&server_sockaddr);
         if (ret == -1) {
@@ -70,7 +73,8 @@ int main(int argc, char **argv)
                 cleanup_server();
 		return -errno;
         }
-        printf("Successfully bound RDMA server address 0.0.0.0:20021\n");
+        printf("Successfully bound RDMA server address %s:%d\n", server_host,
+               server_port);
 
         /* Initiate a listen on the RDMA IP address and port.
          * This is a non-blocking call.
@@ -91,38 +95,12 @@ int main(int argc, char **argv)
          * connection management event channel for this event.
 	 */
         struct rdma_cm_event *cm_event = NULL;
-
-
-
-	ret = rdma_get_cm_event(cm_event_channel, &cm_event);
-        if (ret == -1) {
-                fprintf(stderr, "Blocking for CM events failed: (%s)\n",
-                                strerror(errno));
+        ret = process_rdma_event(cm_event_channel, &cm_event,
+                                 RDMA_CM_EVENT_CONNECT_REQUEST);
+        if (ret) {
+                fprintf(stderr, "Failed to process CM event\n");
                 cleanup_server();
-                return -errno;
-        }
-
-        /* At this point, we've received a CM event. We need to check its
-         * status and event type.
-         */
-        if (cm_event->status != 0) {
-                fprintf(stderr, "CM event received with non-zero status: (%d)\n",
-                                cm_event->status);
-
-                /* Even if we get a bad status we still need to ACK the event */
-                rdma_ack_cm_event(cm_event);
-                cleanup_server();
-                return -1;
-        } else if (cm_event->event != RDMA_CM_EVENT_CONNECT_REQUEST) {
-                fprintf(stderr, "CM event received with unexpected type. Expected %s, but got %s\n",
-                                rdma_event_str(RDMA_CM_EVENT_CONNECT_REQUEST),
-                                rdma_event_str(cm_event->event));
-                /* Even if we got unexpected event type we still need to ACK
-                 * the event.
-                 */
-                rdma_ack_cm_event(cm_event);
-                cleanup_server();
-                return -1;
+                return ret;
         }
 
         /* We got the expected RDMA_CM_EVENT_CONNECT_REQUEST event */
@@ -146,8 +124,8 @@ int main(int argc, char **argv)
         }
         printf("New RDMA connection stored at %p\n", cm_client_id);
 
-
         /* Cleanup before exiting */
+        printf("Cleaning up server and exiting\n");
         rdma_destroy_id(cm_client_id);
         cleanup_server();
         return 0;
