@@ -3,6 +3,7 @@
 # Default target if just "make" is specified
 .DEFAULT_GOAL := all
 
+# C compiler to use
 CC=gcc
 
 RDMA_INCLUDE=/usr/include
@@ -10,38 +11,34 @@ RDMA_LIB=rdmacm
 RDMA_LIBDIR=/usr/lib64
 RDMA_SRC_DIR=./src/rdma
 
+_RDMA_CLIENT_DEPS=rdma_client.c rdma_common.c rdma_common.h
+RDMA_CLIENT_DEPS=$(patsubst %,$(RDMA_SRC_DIR)/%,$(_RDMA_CLIENT_DEPS))
+_RDMA_SERVER_DEPS=rdma_server.c rdma_common.c rdma_common.h
+RDMA_SERVER_DEPS=$(patsubst %,$(RDMA_SRC_DIR)/%,$(_RDMA_SERVER_DEPS))
+
 SOCKETS_SRC_DIR=./src/sockets
-SOCKETS_INCLUDE=./src/sockets
-SOCKETS_CFLAGS=-I$(SOCKETS_INCLUDE)
 
-_SOCKETS_SERVER_OBJ=socket_common.o socket_server.o
-SOCKETS_SERVER_OBJ=$(patsubst %,$(SOCKETS_SRC_DIR)/%,$(_SOCKETS_SERVER_OBJ))
+_SOCKETS_SERVER_DEPS=socket_server.c socket_common.c socket_common.h
+SOCKETS_SERVER_DEPS=$(patsubst %,$(SOCKETS_SRC_DIR)/%,$(_SOCKETS_SERVER_DEPS))
 
-_SOCKETS_CLIENT_OBJ=socket_common.o socket_client.o
-SOCKETS_CLIENT_OBJ=$(patsubst %,$(SOCKETS_SRC_DIR)/%,$(_SOCKETS_CLIENT_OBJ))
+_SOCKETS_CLIENT_DEPS=socket_client.c socket_common.c socket_common.h
+SOCKETS_CLIENT_DEPS=$(patsubst %,$(SOCKETS_SRC_DIR)/%,$(_SOCKETS_CLIENT_DEPS))
 
-_SOCKETS_DEPS=socket_common.h
-SOCKETS_DEPS=$(patsubst %,$(SOCKETS_SRC_DIR)/%,$(_SOCKETS_DEPS))
+# Socket targets
+socket-server: $(SOCKETS_SERVER_DEPS)
+	$(CC) -o $@ $^
 
-%.o: %.c $(SOCKETS_DEPS)
-	$(CC) -c -o $@ $< $(SOCKETS_CFLAGS)
+socket-client: $(SOCKETS_CLIENT_DEPS)
+	$(CC) -o $@ $^
 
-socket-server: $(SOCKETS_SERVER_OBJ)
-	$(CC) -o $@ $^ $(SOCKETS_CFLAGS)
+# RDMA targets
+rdma-server: $(RDMA_SERVER_DEPS)
+	$(CC) -o $@ $^ -l$(RDMA_LIB) -L$(RDMA_LIBDIR) -I$(RDMA_INCLUDE)
 
+rdma-client: $(RDMA_CLIENT_DEPS)
+	$(CC) -o $@ $^ -l$(RDMA_LIB) -L$(RDMA_LIBDIR) -I$(RDMA_INCLUDE)
 
-socket-client: $(SOCKETS_CLIENT_OBJ)
-	$(CC) -o $@ $^ $(SOCKETS_CFLAGS)
-
-src/rdma/rdma-common.o: src/rdma/rdma-common.c rdma-common.h:
-	$(CC) -c -o $@ $< -l$(RDMA_LIB) -L$(RDMA_LIBDIR) -I$(RDMA_INCLUDE)
-
-rdma-server: src/rdma/rdma_server.c src/rdma/rdma_common.c src/rdma/rdma_common.h
-	gcc -o $@ $^ -l$(RDMA_LIB) -L$(RDMA_LIBDIR) -I$(RDMA_INCLUDE)
-
-rdma-client:
-	$(CC) -o $@ -l$(RDMA_LIB) -L$(RDMA_LIBDIR) -I$(RDMA_INCLUDE) $(RDMA_SRC_DIR)/rdma_client.c
-
+# Default/utility targets
 all: socket-server socket-client rdma-server rdma-client
 
 clean:
