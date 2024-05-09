@@ -19,7 +19,7 @@ void print_usage() {
 }
 
 void cleanup_client() {
-        ret = rdma_destroy_id(cm_client_id);
+        int ret = rdma_destroy_id(cm_client_id);
 	if (ret) {
 		fprintf(stderr, "Failed to destroy client CM id with errno: (%s)\n",
                                 strerror(errno));
@@ -61,14 +61,14 @@ int main(int argc, char **argv) {
         struct sockaddr_in server_sockaddr;
         memset(&server_sockaddr, 0, sizeof(server_sockaddr));
         server_sockaddr.sin_family = AF_INET;
-        server_sockaddr.sinaddr.s_addr = inet_addr(server_host);
+        server_sockaddr.sin_addr.s_addr = inet_addr(server_host);
         server_sockaddr.sin_port = htons(server_port);
 
         /* Optional: set up client sockaddr_in information */
         struct sockaddr_in client_sockaddr;
         memset(&client_sockaddr, 0, sizeof(client_sockaddr));
         client_sockaddr.sin_family = AF_INET;
-        client_sockaddr.sinaddr.s_addr = inet_addr(client_host);
+        client_sockaddr.sin_addr.s_addr = inet_addr(client_host);
 
         /* Resolve destination and optional source addresses from IP addresses to
 	 * an RDMA address. If successful, the specified rdma_cm_id will be bound
@@ -128,11 +128,7 @@ int main(int argc, char **argv) {
         }
         printf("Acknowledged RDMA_CM_EVENT_ADDR_RESOLVED event\n");
 
-        ret = process_rdma_cm_event(cm_event_channel,
-			            RDMA_CM_EVENT_ADDR_RESOLVED,
-			&cm_event);
-
-
+        printf("Cleaning up and exiting\n");
         cleanup_client();
         return 0;
 }
