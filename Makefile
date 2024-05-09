@@ -33,6 +33,9 @@ socket-server: $(SOCKETS_SERVER_OBJ)
 socket-client: $(SOCKETS_CLIENT_OBJ)
 	$(CC) -o $@ $^ $(SOCKETS_CFLAGS)
 
+src/rdma/rdma-common.o: src/rdma/rdma-common.c rdma-common.h:
+	$(CC) -c -o $@ $< -l$(RDMA_LIB) -L$(RDMA_LIBDIR) -I$(RDMA_INCLUDE)
+
 rdma-server:
 	$(CC) -o $@ -l$(RDMA_LIB) -L$(RDMA_LIBDIR) -I$(RDMA_INCLUDE) $(RDMA_SRC_DIR)/rdma_server.c
 
