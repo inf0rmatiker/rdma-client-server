@@ -7,10 +7,29 @@
 #include <rdma/rdma_cma.h>
 #include <rdma/rdma_verbs.h>
 
+/* Connection manager data structures for server */
+static struct rdma_event_channel *cm_event_channel;
+static struct rdma_cm_id *cm_server_id, *cm_client_id;
+
+/* Cleans up Connection Manager ID and Event Channel objects before exiting.
+ */
+void cleanup_server() {
+        /* Destroy server connection identifier */
+        ret = rdma_destroy_id(cm_server_id);
+	if (ret == -1) {
+		fprintf(stderr, "Failed to destroy server CM id: (%s)\n",
+                        strerror(errno));
+	}
+
+        /* Clean-up and destroy CM event channel */
+        rdma_destroy_event_channel(cm_event_channel);
+	printf("Successfully destroyed CM event channel\n");
+}
+
 int main(int argc, char **argv) {
 
         /* Create CM event channel for asynchronous communication events */
-        struct rdma_event_channel *cm_event_channel = rdma_create_event_channel();
+        cm_event_channel = rdma_create_event_channel();
 	if (!cm_event_channel) {
                 fprintf(stderr, "Creating CM event channel failed with errno: (%s)\n",
                                 strerror(errno));
@@ -43,20 +62,85 @@ int main(int argc, char **argv) {
         if (ret == -1) {
                 fprintf(stderr, "Binding server RDMA address failed with errno: (%s)\n",
                                 strerror(errno));
+                cleanup_server();
 		return -errno;
         }
         printf("Successfully bound RDMA server address 0.0.0.0:20021\n");
 
+        /* Initiate a listen on the RDMA IP address and port.
+         * This is a non-blocking call.
+         */
+        ret = rdma_listen(cm_server_id, 8);
+        if (ret == -1) {
+                fprintf(stderr, "Listening for CM events failed: (%s)\n",
+                                strerror(errno));
+                cleanup_server();
+		return -errno;
+        }
+        printf("Server is listening successfully at: %s, port: %d \n",
+               inet_ntoa(server_sockaddr.sin_addr),
+	       ntohs(server_sockaddr.sin_port));
 
-        /* Destroy server connection identifier */
-        ret = rdma_destroy_id(cm_server_id);
-	if (ret == -1) {
-		fprintf(stderr, "Failed to destroy server CM id: (%s)\n",
-                        strerror(errno));
-	}
+        /* We expect the client to connect and generate a
+         * RDMA_CM_EVENT_CONNECT_REQUEST. We wait (block) on the
+         * connection management event channel for this event.
+	 */
+        struct rdma_cm_event *cm_event = NULL;
+	ret = rdma_get_cm_event(cm_event_channel, &cm_event);
+        if (ret == -1) {
+                fprintf(stderr, "Blocking for CM events failed: (%s)\n",
+                                strerror(errno));
+                cleanup_server();
+                return -errno;
+        }
 
-        /* Clean-up and destroy CM event channel */
-        rdma_destroy_event_channel(cm_event_channel);
-	printf("Successfully destroyed CM event channel\n");
+        /* At this point, we've received a CM event. We need to check its
+         * status and event type.
+         */
+        if (cm_event->status != 0) {
+                fprintf(stderr, "CM event received with non-zero status: (%d)\n",
+                                cm_event->status);
+
+                /* Even if we get a bad status we still need to ACK the event */
+                rdma_ack_cm_event(cm_event);
+                cleanup_server();
+                return -1;
+        } else if (cm_event->event != RDMA_CM_EVENT_CONNECT_REQUEST) {
+                fprintf(stderr, "CM event received with unexpected type. Expected %s, but got %s\n",
+                                rdma_event_str(RDMA_CM_EVENT_CONNECT_REQUEST),
+                                rdma_event_str(cm_event->event));
+                /* Even if we got unexpected event type we still need to ACK
+                 * the event.
+                 */
+                rdma_ack_cm_event(cm_event);
+                cleanup_server();
+                return -1;
+        }
+
+        /* We got the expected RDMA_CM_EVENT_CONNECT_REQUEST event */
+        printf("New CM event of type %s received\n",
+                rdma_event_str(cm_event->event));
+
+        /* Much like TCP connection, listening returns a new connection
+         * id for a newly connected client. In the case of RDMA, this is stored
+         * in the cm_event->id field. We need to save this information before
+         * acknowledging the event, which also frees the struct.
+	 */
+	cm_client_id = cm_event->id;
+        ret = rdma_ack_cm_event(cm_event);
+        if (ret == -1) {
+                fprintf(stderr, "Failed to ACK CM event %s: (%s)\n",
+                                rdma_event_str(cm_event->event),
+                                strerror(errno));
+                rdma_destroy_id(cm_client_id);
+                cleanup_server();
+		return -errno;
+        }
+        printf("New RDMA connection stored at %p\n", cm_client_id);
+
+
+        /* Cleanup before exiting */
+        rdma_destroy_id(cm_client_id);
+        cleanup_server();
         return 0;
 }
