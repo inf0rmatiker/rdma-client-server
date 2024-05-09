@@ -1,4 +1,4 @@
-.PHONY: clean sockets
+.PHONY: clean
 
 # Default target if just "make" is specified
 .DEFAULT_GOAL := all
@@ -36,7 +36,10 @@ socket-client: $(SOCKETS_CLIENT_OBJ)
 rdma-server:
 	$(CC) -o $@ -l$(RDMA_LIB) -L$(RDMA_LIBDIR) -I$(RDMA_INCLUDE) $(RDMA_SRC_DIR)/rdma_server.c
 
-all: socket-server socket-client
+rdma-client:
+	$(CC) -o $@ -l$(RDMA_LIB) -L$(RDMA_LIBDIR) -I$(RDMA_INCLUDE) $(RDMA_SRC_DIR)/rdma_client.c
+
+all: socket-server socket-client rdma-server rdma-client
 
 clean:
-	rm -rf $(SOCKETS_SRC_DIR)/*.o *-client *-server
+	rm -rf $(SOCKETS_SRC_DIR)/*.o $(RDMA_SRC_DIR)/*.o *-client *-server
