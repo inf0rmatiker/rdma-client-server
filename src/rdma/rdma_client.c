@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 
         /* Create CM id to track communication information */
         int ret = rdma_create_id(cm_event_channel, &cm_client_id, NULL,
-                                 RDMA_PS_TCP);
+                                 RDMA_PS_IPOIB);
         if (ret) {
                 fprintf(stderr, "Creating CM id failed with errno: (%s)\n",
                                 strerror(errno));
