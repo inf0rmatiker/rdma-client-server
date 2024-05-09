@@ -26,7 +26,7 @@ int run()
 	if (ret) {
 		fprintf(stderr, "Failed rdma_getaddrinfo with errno: (%s)\n",
                                 strerror(errno));
-                cleanup_server();
+                cleanup_client();
                 return -errno;
 	}
 
@@ -43,7 +43,7 @@ int run()
         if (ret) {
                 fprintf(stderr, "Failed rdma_create_ep with errno: (%s)\n",
                                 strerror(errno));
-                cleanup_server();
+                cleanup_client();
                 return -errno;
         }
 
