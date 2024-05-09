@@ -4,6 +4,8 @@
 #include <errno.h>
 #include <getopt.h>
 #include <netdb.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <rdma/rdma_cma.h>
 #include <rdma/rdma_verbs.h>
 
@@ -15,7 +17,7 @@ static struct rdma_cm_id *cm_server_id, *cm_client_id;
  */
 void cleanup_server() {
         /* Destroy server connection identifier */
-        ret = rdma_destroy_id(cm_server_id);
+        int ret = rdma_destroy_id(cm_server_id);
 	if (ret == -1) {
 		fprintf(stderr, "Failed to destroy server CM id: (%s)\n",
                         strerror(errno));
