@@ -3,6 +3,7 @@
 /* Connection manager data structures for client */
 static struct rdma_event_channel *cm_event_channel;
 static struct rdma_cm_id *cm_client_id, *cm_server_id;
+static struct rdma_addrinfo *res, hints;
 
 void print_usage()
 {
@@ -12,12 +13,44 @@ void print_usage()
 
 void cleanup_client()
 {
-        int ret = rdma_destroy_id(cm_client_id);
-	if (ret) {
-		fprintf(stderr, "Failed to destroy client CM id with errno: (%s)\n",
-                                strerror(errno));
-	}
+        rdma_destroy_ep(cm_server_id);
         rdma_destroy_event_channel(cm_event_channel);
+        rdma_freeaddrinfo(res);
+}
+
+int run()
+{
+	memset(&hints, 0, sizeof hints);
+	hints.ai_port_space = RDMA_PS_TCP;
+	int ret = rdma_getaddrinfo("192.168.0.106", "20021", &hints, &res);
+	if (ret) {
+		fprintf(stderr, "Failed rdma_getaddrinfo with errno: (%s)\n",
+                                strerror(errno));
+                cleanup_server();
+                return -errno;
+	}
+
+        struct ibv_qp_init_attr init_attr;
+        struct ibv_qp_attr qp_attr;
+        struct ibv_wc wc;
+        memset(&init_attr, 0, sizeof init_attr);
+        init_attr.cap.max_send_wr = init_attr.cap.max_recv_wr = 1;
+        init_attr.cap.max_send_sge = init_attr.cap.max_recv_sge = 1;
+        init_attr.cap.max_inline_data = 16;
+        init_attr.sq_sig_all = 1;
+        init_attr.qp_context = cm_server_id;
+        ret = rdma_create_ep(&cm_server_id, res, NULL, &init_attr);
+        if (ret) {
+                fprintf(stderr, "Failed rdma_create_ep with errno: (%s)\n",
+                                strerror(errno));
+                cleanup_server();
+                return -errno;
+        }
+
+        printf("max_inline_data=%d\n", init_attr.cap.max_inline_data);
+
+        cleanup_client();
+        return 0;
 }
 
 int main(int argc, char **argv)
@@ -31,6 +64,8 @@ int main(int argc, char **argv)
         const char *client_host = argv[1];
         const char *server_host = argv[2];
         int server_port = atoi(argv[3]);
+
+        return run();
 
         /* Open a CM event channel for asynchronous communication events */
         cm_event_channel = rdma_create_event_channel();
