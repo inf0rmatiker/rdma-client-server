@@ -3,7 +3,7 @@
 /* Connection manager data structures for server */
 static struct rdma_event_channel *cm_event_channel;
 static struct rdma_cm_id *cm_server_id, *cm_client_id;
-static struct rdma_addrinfo *res;
+static struct rdma_addrinfo *res, hints;
 
 void print_usage()
 {
@@ -15,17 +15,78 @@ void print_usage()
  */
 void cleanup_server()
 {
-        /* Destroy server connection identifier */
-        int ret = rdma_destroy_id(cm_server_id);
-	if (ret == -1) {
-		fprintf(stderr, "Failed to destroy server CM id: (%s)\n",
-                        strerror(errno));
-	}
+        /* Destroy client and server connection identifiers */
+        rdma_destroy_ep(cm_client_id);
+        rdma_destroy_ep(cm_server_id);
 
         /* Clean-up and destroy CM event channel */
         rdma_destroy_event_channel(cm_event_channel);
         rdma_freeaddrinfo(res);
 	printf("Successfully destroyed CM event channel\n");
+}
+
+int run()
+{
+
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_flags = RAI_PASSIVE;
+        hints.ai_port_space = RDMA_PS_TCP;
+        int ret = rdma_getaddrinfo("192.168.0.106", 20021, &hints, &res);
+        if (ret) {
+                fprintf(stderr, "Failed rdma_getaddrinfo with errno: (%s)\n",
+                                strerror(errno));
+                cleanup_server();
+                return -errno;
+        }
+
+        struct ibv_qp_init_attr init_attr;
+        struct ibv_qp_attr qp_attr;
+        struct ibv_wc wc;
+        memset(&init_attr, 0, sizeof init_attr);
+        init_attr.cap.max_send_wr = init_attr.cap.max_recv_wr = 1;
+        init_attr.cap.max_send_sge = init_attr.cap.max_recv_sge = 1;
+        init_attr.cap.max_inline_data = 16;
+        init_attr.sq_sig_all = 1;
+        ret = rdma_create_ep(&cm_server_id, res, NULL, &init_attr);
+        if (ret) {
+                fprintf(stderr, "Failed rdma_create_ep with errno: (%s)\n",
+                                strerror(errno));
+                cleanup_server();
+                return -errno;
+        }
+
+        ret = rdma_listen(cm_server_id, 0);
+        if (ret) {
+                fprintf(stderr, "Failed rdma_listen with errno: (%s)\n",
+                                strerror(errno));
+                cleanup_server();
+                return -errno;
+        }
+
+        ret = rdma_get_request(cm_server_id, &cm_client_id);
+        if (ret) {
+                fprintf(stderr, "Failed rdma_get_request with errno: (%s)\n",
+                                strerror(errno));
+                cleanup_server();
+                return -errno;
+        }
+        printf("Got request\n");
+
+        // printf("res = rdma_addrinfo {"
+        //        "ai_family=%d\n"
+        //        "ai_qp_type=%d\n"
+        //        "ai_src_canonname=%s\n"
+        //        "ai_dst_canonname=%s\n"
+        //        "ai_route_len=%d\n"
+        //        "}\n",
+        //        res->ai_family,
+        //        res->ai_qp_type,
+        //        res->ai_src_canonname,
+        //        res->ai_dst_canonname,
+        //        res->ai_route_len
+        // );
+        cleanup_server();
+        return 0;
 }
 
 int main(int argc, char **argv)
@@ -40,33 +101,7 @@ int main(int argc, char **argv)
         int server_port = atoi(argv[2]);
         int ret = 0;
 
-        // struct rdma_addrinfo hints;
-        // memset(&hints, 0, sizeof(hints));
-        // hints.ai_flags = RAI_PASSIVE;
-        // hints.ai_port_space = RDMA_PS_IPOIB;
-        // ret = rdma_getaddrinfo(server_host, port, &hints, &res);
-        // if (ret) {
-        //         fprintf(stderr, "Failed rdma_getaddrinfo with errno: (%s)\n",
-        //                         strerror(errno));
-        //         cleanup_server();
-        //         return -errno;
-        // }
-        // printf("res = rdma_addrinfo {"
-        //        "ai_family=%d\n"
-        //        "ai_qp_type=%d\n"
-        //        "ai_src_canonname=%s\n"
-        //        "ai_dst_canonname=%s\n"
-        //        "ai_route_len=%d\n"
-        //        "}\n",
-        //        res->ai_family,
-        //        res->ai_qp_type,
-        //        res->ai_src_canonname,
-        //        res->ai_dst_canonname,
-        //        res->ai_route_len
-        // );
-
-        // exit(0);
-
+        return run();
 
         /* Create CM event channel for asynchronous communication events */
         cm_event_channel = rdma_create_event_channel();
