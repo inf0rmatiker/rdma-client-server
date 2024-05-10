@@ -94,11 +94,11 @@ int run()
         }
         printf("Successfully connected\n");
 
-
         rdma_disconnect(cm_server_id);
         rdma_dereg_mr(mr);
         rdma_dereg_mr(send_mr);
-        cleanup_client();
+        rdma_destroy_ep(cm_server_id);
+        rdma_freeaddrinfo(res);
         return 0;
 }
 
