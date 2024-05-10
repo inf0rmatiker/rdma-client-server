@@ -64,7 +64,40 @@ int run()
                 return -1;
         }
 
+        send_mr = rdma_reg_msgs(cm_server_id, send_msg, 40);
+        if (!send_mr) {
+                fprintf(stderr, "Failed register send buffer\n");
+                rdma_dereg_mr(mr);
+                rdma_dereg_mr(send_mr);
+                cleanup_client();
+                return -1;
+        }
+        printf("Successfully registered both recv_msg and send_msg buffers\n");
 
+        // ret = rdma_post_recv(cm_server_id, NULL, recv_msg, 40, mr);
+        // if (ret) {
+        //         fprintf(stderr, "Failed rdma_post_rcv\n");
+        //         rdma_dereg_mr(mr);
+        //         rdma_dereg_mr(send_mr);
+        //         cleanup_client();
+        //         return -1;
+        // }
+        // printf("Successfully posted recv buffer\n");
+
+        ret = rdma_connect(cm_server_id, NULL);
+        if (ret) {
+                fprintf(stderr, "Failed rdma_connect\n");
+                rdma_dereg_mr(mr);
+                rdma_dereg_mr(send_mr);
+                cleanup_client();
+                return -1;
+        }
+        printf("Successfully connected\n");
+
+
+        rdma_disconnect(cm_server_id);
+        rdma_dereg_mr(mr);
+        rdma_dereg_mr(send_mr);
         cleanup_client();
         return 0;
 }
