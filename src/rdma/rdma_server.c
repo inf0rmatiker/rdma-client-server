@@ -72,6 +72,11 @@ int run()
         }
         printf("Got request\n");
 
+        rdma_disconnect(cm_client_id);
+        rdma_destroy_ep(cm_client_id);
+        rdma_destroy_ep(cm_server_id);
+        rdma_freeaddrinfo(res);
+
         // printf("res = rdma_addrinfo {"
         //        "ai_family=%d\n"
         //        "ai_qp_type=%d\n"
@@ -85,7 +90,6 @@ int run()
         //        res->ai_dst_canonname,
         //        res->ai_route_len
         // );
-        cleanup_server();
         return 0;
 }
 
