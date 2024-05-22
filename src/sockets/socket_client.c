@@ -65,6 +65,7 @@ int main(int argc, char **argv) {
                         strerror(errno));
                 exit(1);
         }
+        printf("Created client sockfd: %d\n", client_sockfd);
 
         /* Connect to server socket */
         int res = connect(client_sockfd, (struct sockaddr*)&server_addr,
@@ -73,6 +74,7 @@ int main(int argc, char **argv) {
                 printf("Connection failed: %s\n", strerror(errno));
                 return -1;
         }
+        printf("Connected to server: %s:%d\n", server_host, server_port);
 
         char *send_buffer = calloc(sizeof(char), MAX_MSG_SIZE+1);
         read_stdin(send_buffer, MAX_MSG_SIZE);
