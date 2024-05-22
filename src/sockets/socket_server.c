@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
         /* Zero out server's sockaddr_in struct, and populate it */
         memset(&server_addr, 0, sizeof(server_addr));
         server_addr.sin_family = AF_INET;           // IPv4 address family
-        server_addr.sin_addr.s_addr = INADDR_ANY;   // Listen on 0.0.0.0
+        server_addr.sin_addr.s_addr = inet_addr("192.168.0.106");   // Listen on 0.0.0.0
         server_addr.sin_port = htons(server_port);  // Use network byte order
 
         /* Create a socket file descriptor */
@@ -102,6 +102,7 @@ int main(int argc, char** argv) {
                         strerror(errno));
                 exit(1);
         }
+        printf("Successfully bound to sockfd: %d\n", sockfd);
 
         /* Listen to the socket */
         ret = listen(sockfd, max_client_connections);
@@ -110,6 +111,7 @@ int main(int argc, char** argv) {
                         strerror(errno));
                 exit(1);
         }
+        printf("Listening to sockfd %d...\n", sockfd);
 
         while (true) {
                 /* Accept a client connection */
