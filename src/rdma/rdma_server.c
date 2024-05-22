@@ -29,8 +29,8 @@ int run()
 {
 
         memset(&hints, 0, sizeof(hints));
-        hints.ai_flags = RAI_PASSIVE;
-        hints.ai_port_space = RDMA_PS_TCP;
+        hints.ai_flags = RAI_NUMERICHOST | RAI_PASSIVE;
+        hints.ai_port_space = RDMA_PS_IPOIB;
         int ret = rdma_getaddrinfo("192.168.0.106", "20021", &hints, &res);
         if (ret) {
                 fprintf(stderr, "Failed rdma_getaddrinfo with errno: (%s)\n",

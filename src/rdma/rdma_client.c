@@ -54,25 +54,25 @@ int run()
 
         int send_flags = IBV_SEND_INLINE;
 
-        char recv_msg[40];
-        char send_msg[40];
-        mr = rdma_reg_msgs(cm_server_id, recv_msg, 40);
-        if (!mr) {
-                fprintf(stderr, "Failed register receive buffer\n");
-                rdma_dereg_mr(mr);
-                cleanup_client();
-                return -1;
-        }
+        // char recv_msg[40];
+        // char send_msg[40];
+        // mr = rdma_reg_msgs(cm_server_id, recv_msg, 40);
+        // if (!mr) {
+        //         fprintf(stderr, "Failed register receive buffer\n");
+        //         rdma_dereg_mr(mr);
+        //         cleanup_client();
+        //         return -1;
+        // }
 
-        send_mr = rdma_reg_msgs(cm_server_id, send_msg, 40);
-        if (!send_mr) {
-                fprintf(stderr, "Failed register send buffer\n");
-                rdma_dereg_mr(mr);
-                rdma_dereg_mr(send_mr);
-                cleanup_client();
-                return -1;
-        }
-        printf("Successfully registered both recv_msg and send_msg buffers\n");
+        // send_mr = rdma_reg_msgs(cm_server_id, send_msg, 40);
+        // if (!send_mr) {
+        //         fprintf(stderr, "Failed register send buffer\n");
+        //         rdma_dereg_mr(mr);
+        //         rdma_dereg_mr(send_mr);
+        //         cleanup_client();
+        //         return -1;
+        // }
+        // printf("Successfully registered both recv_msg and send_msg buffers\n");
 
         // ret = rdma_post_recv(cm_server_id, NULL, recv_msg, 40, mr);
         // if (ret) {
