@@ -95,10 +95,21 @@ int main(int argc, char** argv) {
         }
 
         /* Bind to that socket */
-        bind(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr));
+        int ret = bind(sockfd, (struct sockaddr *) &server_addr,
+                       sizeof(server_addr));
+        if (ret) {
+                fprintf(stderr, "Unable to bind to socket: %s\n",
+                        strerror(errno));
+                exit(1);
+        }
 
         /* Listen to the socket */
-        listen(sockfd, max_client_connections);
+        ret = listen(sockfd, max_client_connections);
+        if (ret) {
+                fprintf(stderr, "Unable to listen to socket: %s\n",
+                        strerror(errno));
+                exit(1);
+        }
 
         while (true) {
                 /* Accept a client connection */
