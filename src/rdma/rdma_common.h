@@ -16,6 +16,10 @@
 #include <arpa/inet.h>
 #include <rdma/rdma_cma.h>
 #include <rdma/rdma_verbs.h>
+#include <rdma/rsocket.h>
+#include <infiniband/ib.h>
+#include <infiniband/verbs.h>
+
 
 /*
  * Mapping between a bitflag and its enum string.
