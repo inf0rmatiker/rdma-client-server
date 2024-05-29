@@ -8,12 +8,6 @@ static struct rdma_event_channel *cm_event_channel;
 static struct rdma_cm_id *cm_server_id, *cm_client_id;
 static struct rdma_addrinfo *rai, hints;
 
-void print_usage()
-{
-        printf("Usage:\n\t./rdma-server <server_host> <server_port>\n");
-        printf("Example:\n\t./rdma-server 192.168.0.106 20021\n");
-}
-
 /* Cleans up Connection Manager ID and Event Channel objects before exiting.
  */
 void cleanup_server()
