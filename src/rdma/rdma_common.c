@@ -34,3 +34,36 @@ int process_rdma_event(struct rdma_event_channel *event_channel,
 
         return 0;
 }
+
+void bitflags_to_str(struct flag_str *pairs, size_t count, int flags, char *res)
+{
+	int has_flag = 0;
+	for (int i = 0; i < count; i++) {
+		if (flags & (pairs[i]).value) {
+			if (has_flag) {
+				strcat(res, " | ");
+			}
+			strcat(res, pairs[i].str);
+			has_flag = 1;
+		}
+	}
+	strcat(res, "\0");
+	return;
+}
+
+void print_rdma_addrinfo(const struct rdma_addrinfo* rai)
+{
+        printf("rdma_addrinfo{\n");
+
+        struct flag_str ai_flag_pairs[] = {
+                {RAI_PASSIVE, "RAI_PASSIVE"},
+                {RAI_NUMERICHOST, "RAI_NUMERICHOST"},
+                {RAI_NOROUTE, "RAI_NOROUTE"},
+                {RAI_FAMILY, "RAI_FAMILY"}
+        };
+
+        char ai_flags_str[64] = { 0 };
+        bitflags_to_str(ai_flag_pairs, 4, rai->ai_flags, ai_flags_str);
+        printf("\tai_flags: %s\n", ai_flags_str);
+        printf("}\n");
+}
