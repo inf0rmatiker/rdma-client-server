@@ -46,7 +46,7 @@ int run()
         }
         printf("Server CM id is created\n");
 
-        /* Figure out the rdma_addrinfo of our RDMA device */
+        /* Figure out the rdma_addrinfo of our RDMA device. */
         memset(&hints, 0, sizeof(hints));
         hints.ai_flags = RAI_NUMERICHOST | RAI_PASSIVE;
         hints.ai_port_space = RDMA_PS_TCP;
@@ -54,11 +54,34 @@ int run()
         if (ret) {
                 fprintf(stderr, "Failed rdma_getaddrinfo with errno: (%s)\n",
                                 strerror(errno));
-                cleanup_server();
                 return -errno;
         }
         printf("Successfully retrieved rdma_addrinfo\n");
         print_rdma_addrinfo(rai);
+
+        /* Bind to an RDMA address. */
+        ret = rdma_bind_addr(cm_server_id, rai->ai_src_addr);
+	if (ret) {
+		fprintf(stderr, "Failed rdma_bind_addr with errno: (%s)\n",
+                        strerror(errno));
+                return -errno;
+	}
+        printf("Successfully bound RDMA server address %s:%d\n", server_addr,
+               server_port);
+
+        /* Initiate a listen on the RDMA IP address and port.
+         * This is a non-blocking call.
+         */
+        ret = rdma_listen(cm_server_id, 8);
+        if (ret == -1) {
+                fprintf(stderr, "Listening for CM events failed: (%s)\n",
+                                strerror(errno));
+		return -errno;
+        }
+        printf("Server is listening successfully at: %s, port: %d \n",
+               inet_ntoa(((struct sockaddr_in *)rai->ai_src_addr)->sin_addr),
+	       ntohs(((struct sockaddr_in *)rai->ai_src_addr)->sin_port));
+
 
         /*
         struct ibv_qp_init_attr init_attr;
@@ -102,22 +125,10 @@ int run()
 
         */
 
+        printf("Freeing rdma_addrinfo\n");
         rdma_freeaddrinfo(rai);
+        printf("Closing CM event channel\n");
         rdma_destroy_event_channel(cm_event_channel);
-
-        // printf("res = rdma_addrinfo {"
-        //        "ai_family=%d\n"
-        //        "ai_qp_type=%d\n"
-        //        "ai_src_canonname=%s\n"
-        //        "ai_dst_canonname=%s\n"
-        //        "ai_route_len=%d\n"
-        //        "}\n",
-        //        res->ai_family,
-        //        res->ai_qp_type,
-        //        res->ai_src_canonname,
-        //        res->ai_dst_canonname,
-        //        res->ai_route_len
-        // );
         return 0;
 }
 
@@ -148,26 +159,6 @@ int main(int argc, char **argv)
         }
 
         return run();
-
-        /* Bind to an RDMA address. To do this, we need to create a sockaddr_in,
-         * fill out the fields, then cast it to a sockaddr* before passing it to
-         * rdma_bind_addr.
-         */
-        // struct sockaddr_in server_sockaddr;
-        // memset(&server_sockaddr, 0, sizeof(server_sockaddr));
-	// server_sockaddr.sin_family = AF_INET; /* standard IP NET address */
-	// server_sockaddr.sin_addr.s_addr = inet_addr(server_host); /* passed address */
-        // server_sockaddr.sin_port = htons(server_port);
-
-        // ret = rdma_bind_addr(cm_server_id, (struct sockaddr *)&server_sockaddr);
-        // if (ret == -1) {
-        //         fprintf(stderr, "Binding server RDMA address failed with errno: (%s)\n",
-        //                         strerror(errno));
-        //         cleanup_server();
-	// 	return -errno;
-        // }
-        // printf("Successfully bound RDMA server address %s:%d\n", server_host,
-        //        server_port);
 
         /* Initiate a listen on the RDMA IP address and port.
          * This is a non-blocking call.
