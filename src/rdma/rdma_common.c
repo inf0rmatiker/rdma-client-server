@@ -42,7 +42,7 @@ static void print_bits(int value) {
         printf("\n");
 }
 
-static void rdma_ps_str(enum rdma_port_space value, char *res)
+static void rdma_ps_to_str(enum rdma_port_space value, char *res)
 {
         switch (value) {
                 case RDMA_PS_IPOIB:
@@ -62,7 +62,7 @@ static void rdma_ps_str(enum rdma_port_space value, char *res)
         }
 }
 
-static void ibv_qp_type_str(enum ibv_qp_type value, char *res)
+static void ibv_qp_type_to_str(enum ibv_qp_type value, char *res)
 {
         switch (value) {
                 case IBV_QPT_RC:
@@ -85,6 +85,81 @@ static void ibv_qp_type_str(enum ibv_qp_type value, char *res)
                         break;
                 case IBV_QPT_XRC_SEND:
                         strcat(res, "IBV_QPT_XRC_SEND");
+                        break;
+                default:
+                        strcat(res, "Unknown");
+        }
+}
+
+static void ibv_node_type_to_str(enum ibv_node_type value, char *res)
+{
+        switch (value) {
+                case IBV_NODE_CA:
+                        strcat(res, "IBV_NODE_CA");
+                        break;
+                case IBV_NODE_RNIC:
+                        strcat(res, "IBV_NODE_RNIC");
+                        break;
+                case IBV_NODE_ROUTER:
+                        strcat(res, "IBV_NODE_ROUTER");
+                        break;
+                case IBV_NODE_SWITCH:
+                        strcat(res, "IBV_NODE_SWITCH");
+                        break;
+                case IBV_NODE_UNKNOWN:
+                        strcat(res, "IBV_NODE_UNKNOWN");
+                        break;
+                case IBV_NODE_UNSPECIFIED:
+                        strcat(res, "IBV_NODE_UNSPECIFIED");
+                        break;
+                case IBV_NODE_USNIC:
+                        strcat(res, "IBV_NODE_USNIC");
+                        break;
+                case IBV_NODE_USNIC_UDP:
+                        strcat(res, "IBV_NODE_USNIC_UDP");
+                        break;
+                default:
+                        strcat(res, "Unknown");
+        }
+}
+
+static void ibv_transport_type_to_str(enum ibv_node_type value, char *res)
+{
+        switch (value) {
+                case IBV_TRANSPORT_IB:
+                        strcat(res, "IBV_TRANSPORT_IB");
+                        break;
+                case IBV_TRANSPORT_IWARP:
+                        strcat(res, "IBV_TRANSPORT_IWARP");
+                        break;
+                case IBV_TRANSPORT_UNKNOWN:
+                        strcat(res, "IBV_TRANSPORT_UNKNOWN");
+                        break;
+                case IBV_TRANSPORT_UNSPECIFIED:
+                        strcat(res, "IBV_TRANSPORT_UNSPECIFIED");
+                        break;
+                case IBV_TRANSPORT_USNIC:
+                        strcat(res, "IBV_TRANSPORT_USNIC");
+                        break;
+                case IBV_TRANSPORT_USNIC_UDP:
+                        strcat(res, "IBV_TRANSPORT_USNIC_UDP");
+                        break;
+                default:
+                        strcat(res, "Unknown");
+        }
+}
+
+static void ai_family_to_str(int ai_family, char *res)
+{
+        switch (ai_family) {
+                case AF_INET:
+                        strcat(res, "AF_INET");
+                        break;
+                case AF_INET6:
+                        strcat(res, "AF_INET6");
+                        break;
+                case AF_IB:
+                        strcat(res, "AF_IB");
                         break;
                 default:
                         strcat(res, "Unknown");
@@ -139,33 +214,17 @@ void print_rdma_addrinfo(const struct rdma_addrinfo* rai)
         bitflags_to_str(ai_flags, 4, rai->ai_flags, ai_flags_str);
         printf("\tai_flags: %s\n", ai_flags_str);
 
-        struct flag_str ai_families[] = {
-                {AF_INET, "AF_INET"},
-                {AF_INET6, "AF_INET6"},
-                {AF_IB, "AF_IB"}
-        };
-        char ai_family_str[64] = { 0 };
-        bitflags_to_str(ai_families, 3, rai->ai_family, ai_family_str);
-        printf("\tai_family: %s\n", ai_family_str);
+        char address_family_str[64] = { 0 };
+        ai_family_to_str(rai->ai_family, address_family_str);
+        printf("\tai_family: %s\n", ai_family_to_str);
 
-        struct flag_str ai_qp_types[] = {
-                {IBV_QPT_UD, "IBV_QPT_UD"},
-                {IBV_QPT_RC, "IBV_QPT_RC"}
-        };
         char ai_qp_types_str[32] = { 0 };
-        bitflags_to_str(ai_qp_types, 3, rai->ai_qp_type, ai_qp_types_str);
+        ibv_qp_type_to_str(rai->ai_qp_type, ai_qp_types_str);
         printf("\tai_qp_type: %s\n", ai_qp_types_str);
 
-        struct flag_str ai_ps_types[] = {
-                {RDMA_PS_UDP, "RDMA_PS_UDP"},
-                {RDMA_PS_IPOIB, "RDMA_PS_IPOIB"},
-                {RDMA_PS_TCP, "RDMA_PS_TCP"},
-                {RDMA_PS_IB, "RDMA_PS_IB"}
-        };
         char rdma_ps_str[64] = { 0 };
-        bitflags_to_str(ai_ps_types, 3, rai->ai_port_space, rdma_ps_str);
+        rdma_ps_to_str(rai->ai_port_space, rdma_ps_str);
         printf("\tai_port_space: %s\n", rdma_ps_str);
-
         printf("\tai_src_len: %d\n", rai->ai_src_len);
         printf("\tai_dst_len: %d\n", rai->ai_dst_len);
         printf("\tai_src_addr: { struct sockaddr* %p }\n", rai->ai_src_addr);
@@ -203,30 +262,12 @@ void print_ibv_device(const struct ibv_device* device)
 
         printf("ibv_device{\n");
 
-        struct flag_str ibv_node_types[] = {
-                {IBV_NODE_UNKNOWN, "IBV_NODE_UNKNOWN"},
-                {IBV_NODE_CA, "IBV_NODE_CA"},
-                {IBV_NODE_SWITCH, "IBV_NODE_SWITCH"},
-                {IBV_NODE_ROUTER, "IBV_NODE_ROUTER"},
-                {IBV_NODE_RNIC, "IBV_NODE_RNIC"},
-                {IBV_NODE_USNIC, "IBV_NODE_USNIC"},
-                {IBV_NODE_USNIC_UDP, "IBV_NODE_USNIC_UDP"},
-                {IBV_NODE_UNSPECIFIED, "IBV_NODE_UNSPECIFIED"}
-        };
         char node_type_str[32] = { 0 };
-        bitflags_to_str(ibv_node_types, 8, (int)device->node_type, node_type_str);
+        ibv_node_type_to_str(device->node_type, node_type_str);
         printf("\tnode_type: %s\n", node_type_str);
 
-        struct flag_str ibv_transport_types[] = {
-                {IBV_TRANSPORT_UNKNOWN, "IBV_TRANSPORT_UNKNOWN"},
-                {IBV_TRANSPORT_IB, "IBV_TRANSPORT_IB"},
-                {IBV_TRANSPORT_IWARP, "IBV_TRANSPORT_IWARP"},
-                {IBV_TRANSPORT_USNIC, "IBV_TRANSPORT_USNIC"},
-                {IBV_TRANSPORT_USNIC_UDP, "IBV_TRANSPORT_USNIC_UDP"}
-        };
         char transport_type_str[32] = { 0 };
-        bitflags_to_str(ibv_transport_types, 5, (int)device->transport_type,
-                    transport_type_str);
+        ibv_transport_type_to_str(device->transport_type, transport_type_str);
         printf("\transport_type: %s\n", transport_type_str);
 
         printf("\tname: %s\n", device->name);
@@ -268,14 +309,14 @@ void print_rdma_cm_id(const struct rdma_cm_id* cm_id)
                 printf("}\n");
         }
 
-        char rdma_ps_type_str[16] = { 0 };
-        rdma_ps_str(cm_id->ps, rdma_ps_type_str);
-        printf("\tps: %s\n", rdma_ps_type_str);
+        char rdma_ps_str[16] = { 0 };
+        rdma_ps_to_str(cm_id->ps, rdma_ps_str);
+        printf("\tps: %s\n", rdma_ps_str);
         printf("\tport_num: %u\n", cm_id->port_num);
 
 
         char qp_type_str[24] = { 0 };
-        ibv_qp_type_str(cm_id->qp_type, qp_type_str);
+        ibv_qp_type_to_str(cm_id->qp_type, qp_type_str);
         printf("\tqp_type: %s\n", qp_type_str);
 
 	printf("}\n");
