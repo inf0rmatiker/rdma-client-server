@@ -136,11 +136,12 @@ int main(int argc, char **argv)
 {
 
         int option;
+        size_t message_len;
         while ((option = getopt(argc, argv, "m:s:p:")) != -1) {
                 switch (option) {
                         case 'm':
                                 /* Allocate some space for our message */
-                                int message_len = strlen(optarg);
+                                message_len = strlen(optarg);
                                 message = calloc(message_len + 1, sizeof(char));
                                 if (!message) {
                                         fprintf(stderr, "Failed to allocate memory for message\n");
