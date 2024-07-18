@@ -73,7 +73,7 @@ int setup_client()
 		return -errno;
         }
         printf("Client CM id is created\n");
-        print_rdma_cm_id(cm_server_id);
+        print_rdma_cm_id(cm_client_id);
 
         /* Get RDMA address for server */
         hints.ai_port_space = RDMA_PS_TCP;
