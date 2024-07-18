@@ -42,7 +42,8 @@ static void print_bits(int value) {
         printf("\n");
 }
 
-void rdma_ps_str(enum rdma_port_space value, char *res) {
+static void rdma_ps_str(enum rdma_port_space value, char *res)
+{
         switch (value) {
                 case RDMA_PS_IPOIB:
                         strcat(res, "RDMA_PS_IPOIB");
@@ -55,6 +56,35 @@ void rdma_ps_str(enum rdma_port_space value, char *res) {
                         break;
                 case RDMA_PS_UDP:
                         strcat(res, "RDMA_PS_UDP");
+                        break;
+                default:
+                        strcat(res, "Unknown");
+        }
+}
+
+static void ibv_qp_type_str(enum ibv_qp_type value, char *res)
+{
+        switch (value) {
+                case IBV_QPT_RC:
+                        strcat(res, "IBV_QPT_RC");
+                        break;
+                case IBV_QPT_UC:
+                        strcat(res, "IBV_QPT_UC");
+                        break;
+                case IBV_QPT_UD:
+                        strcat(res, "IBV_QPT_UD");
+                        break;
+                case IBV_QPT_RAW_PACKET:
+                        strcat(res, "IBV_QPT_RAW_PACKET");
+                        break;
+                case IBV_QPT_DRIVER:
+                        strcat(res, "IBV_QPT_DRIVER");
+                        break;
+                case IBV_QPT_XRC_RECV:
+                        strcat(res, "IBV_QPT_XRC_RECV");
+                        break;
+                case IBV_QPT_XRC_SEND:
+                        strcat(res, "IBV_QPT_XRC_SEND");
                         break;
                 default:
                         strcat(res, "Unknown");
@@ -243,18 +273,10 @@ void print_rdma_cm_id(const struct rdma_cm_id* cm_id)
         printf("\tps: %s\n", rdma_ps_type_str);
         printf("\tport_num: %u\n", cm_id->port_num);
 
-        struct flag_str ibv_qp_types[] = {
-                {IBV_QPT_RC, "IBV_QPT_RC"},
-                {IBV_QPT_UC, "IBV_QPT_UC"},
-                {IBV_QPT_UD, "IBV_QPT_UD"},
-                {IBV_QPT_RAW_PACKET, "IBV_QPT_RAW_PACKET"},
-                {IBV_QPT_XRC_SEND, "IBV_QPT_XRC_SEND"},
-                {IBV_QPT_XRC_RECV, "IBV_QPT_XRC_RECV"},
-                {IBV_QPT_DRIVER, "IBV_QPT_DRIVER"},
-        };
-        char ibv_qp_type_str[24] = { 0 };
-        bitflags_to_str(ibv_qp_types, 7, (int)cm_id->qp_type, ibv_qp_type_str);
-        printf("\tqp_type: %s\n", ibv_qp_type_str);
+
+        char qp_type_str[24] = { 0 };
+        ibv_qp_type_str(cm_id->qp_type, qp_type_str);
+        printf("\tqp_type: %s\n", qp_type_str);
 
 	printf("}\n");
 }
