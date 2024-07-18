@@ -56,7 +56,7 @@ void cleanup_server()
 
         /* Destroy client metadata buffer */
         if (client_metadata_mr) {
-                rdma_buffer_deregister(client_metadata_mr);
+                ibv_dereg_mr(client_metadata_mr);
         }
 
         /* Destroy queue pairs */
