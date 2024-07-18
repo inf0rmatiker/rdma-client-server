@@ -42,14 +42,29 @@ static void print_bits(int value) {
         printf("\n");
 }
 
+void rdma_ps_str(enum rdma_port_space value, char *res) {
+        switch (value) {
+                case RDMA_PS_IPOIB:
+                        strcat(res, "RDMA_PS_IPOIB");
+                        break;
+                case RDMA_PS_TCP:
+                        strcat(res, "RDMA_PS_TCP");
+                        break;
+                case RDMA_PS_IB:
+                        strcat(res, "RDMA_PS_IB");
+                        break;
+                case RDMA_PS_UDP:
+                        strcat(res, "RDMA_PS_UDP");
+                        break;
+                default:
+                        strcat(res, "Unknown");
+        }
+}
+
 void bitflags_to_str(struct flag_str *pairs, size_t count, int flags, char *res)
 {
-        printf("DEBUG: flags: ");
-        print_bits(flags);
 	int has_flag = 0;
 	for (int i = 0; i < count; i++) {
-                printf("DEBUG: pairs[%d].value: ");
-                print_bits(pairs[i].value);
 		if (flags & (pairs[i]).value) {
 			if (has_flag) {
 				strcat(res, " | ");
@@ -223,14 +238,8 @@ void print_rdma_cm_id(const struct rdma_cm_id* cm_id)
                 printf("}\n");
         }
 
-        struct flag_str rdma_ps_types[] = {
-                {RDMA_PS_IPOIB, "RDMA_PS_IPOIB"},
-                {RDMA_PS_TCP, "RDMA_PS_TCP"},
-                {RDMA_PS_UDP, "RDMA_PS_UDP"},
-                {RDMA_PS_IB, "RDMA_PS_IB"}
-        };
         char rdma_ps_type_str[16] = { 0 };
-        bitflags_to_str(rdma_ps_types, 4, (int)cm_id->ps, rdma_ps_type_str);
+        rdma_ps_str(cm_id->ps, rdma_ps_type_str);
         printf("\tps: %s\n", rdma_ps_type_str);
         printf("\tport_num: %u\n", cm_id->port_num);
 
