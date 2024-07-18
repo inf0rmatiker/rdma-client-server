@@ -140,7 +140,8 @@ int main(int argc, char **argv)
                 switch (option) {
                         case 'm':
                                 /* Allocate some space for our message */
-                                size_t message_len = strlen(optarg);
+                                size_t message_len;
+                                message_len = strlen(optarg);
                                 message = calloc(message_len + 1, sizeof(char));
                                 if (!message) {
                                         fprintf(stderr, "Failed to allocate memory for message\n");
