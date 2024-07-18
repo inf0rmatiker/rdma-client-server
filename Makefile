@@ -11,6 +11,8 @@ RDMA_LIB=rdmacm
 RDMA_LIBDIR=/usr/lib64
 RDMA_SRC_DIR=./src/rdma
 
+IBVERBS_LIB=ibverbs
+
 RDMA_BINARIES=rdma-client rdma-server
 _RDMA_CLIENT_DEPS=rdma_client.c rdma_common.c rdma_common.h
 RDMA_CLIENT_DEPS=$(patsubst %,$(RDMA_SRC_DIR)/%,$(_RDMA_CLIENT_DEPS))
@@ -34,10 +36,10 @@ socket-client: $(SOCKETS_CLIENT_DEPS)
 
 # RDMA targets
 rdma-server: $(RDMA_SERVER_DEPS)
-	$(CC) -o $@ $^ -l$(RDMA_LIB) -L$(RDMA_LIBDIR) -I$(RDMA_INCLUDE)
+	$(CC) -o $@ $^ -l$(RDMA_LIB) -l$(IBVERBS_LIB) -L$(RDMA_LIBDIR) -I$(RDMA_INCLUDE)
 
 rdma-client: $(RDMA_CLIENT_DEPS)
-	$(CC) -o $@ $^ -l$(RDMA_LIB) -L$(RDMA_LIBDIR) -I$(RDMA_INCLUDE)
+	$(CC) -o $@ $^ -l$(RDMA_LIB) -l$(IBVERBS_LIB) -L$(RDMA_LIBDIR) -I$(RDMA_INCLUDE)
 
 # Default/utility targets
 all: $(SOCKETS_BINARIES) $(RDMA_BINARIES)
