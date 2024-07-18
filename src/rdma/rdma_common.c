@@ -216,7 +216,7 @@ void print_rdma_addrinfo(const struct rdma_addrinfo* rai)
 
         char address_family_str[64] = { 0 };
         ai_family_to_str(rai->ai_family, address_family_str);
-        printf("\tai_family: %s\n", ai_family_to_str);
+        printf("\tai_family: %s\n", address_family_str);
 
         char ai_qp_types_str[32] = { 0 };
         ibv_qp_type_to_str(rai->ai_qp_type, ai_qp_types_str);
