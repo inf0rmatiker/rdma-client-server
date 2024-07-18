@@ -35,10 +35,21 @@ int process_rdma_event(struct rdma_event_channel *event_channel,
         return 0;
 }
 
+static void print_bits(int value) {
+        for (int i = ((sizeof(value) * 8) - 1); i >= 0; i--) {
+                printf("%u", (value >> i) & 1);
+        }
+        printf("\n");
+}
+
 void bitflags_to_str(struct flag_str *pairs, size_t count, int flags, char *res)
 {
+        printf("DEBUG: flags: ");
+        print_bits(flags);
 	int has_flag = 0;
 	for (int i = 0; i < count; i++) {
+                printf("DEBUG: pairs[%d].value: ");
+                print_bits(pairs[i].value);
 		if (flags & (pairs[i]).value) {
 			if (has_flag) {
 				strcat(res, " | ");
