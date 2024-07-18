@@ -49,6 +49,11 @@ struct __attribute((packed)) rdma_buffer_attr {
 };
 
 /*
+ * Gets human-readable string for RDMA port space enums
+ */
+void rdma_ps_str(enum rdma_port_space value, char *res);
+
+/*
  * Converts a set of bitflags to a human-readable string.
  * If there are more than 1 flags set, they are separated by the '|' character.
  * Stores the string result in *res pointer passed in.
