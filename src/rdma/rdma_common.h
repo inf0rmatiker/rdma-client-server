@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <netdb.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <rdma/rdma_cma.h>
@@ -87,12 +88,16 @@ void print_ibv_sge(const struct ibv_sge *sge);
 void print_rdma_buffer_attr(const struct rdma_buffer_attr *);
 
 /*
+ * Prints a sockaddr struct in human-readable terms.
+ */
+void print_sockaddr(const struct sockaddr *);
+
+/*
  * process_rdma_event fully checks and processes an RDMA event on the
  * Connection Manager event channel.
  */
 int process_rdma_event(struct rdma_event_channel *ec,
                        struct rdma_cm_event **event,
                        enum rdma_cm_event_type type);
-
 
 #endif /* RDMA_COMMON_H */
