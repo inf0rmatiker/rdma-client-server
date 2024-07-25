@@ -314,8 +314,9 @@ void print_rdma_addr(const struct rdma_addr *addr)
         //         } global;
         // };
 
-        printf("rdma_addr{");
+        printf("rdma_addr{\n\t");
         print_sockaddr((const struct sockaddr *)&(addr->src_sin));
+        printf("\t");
         print_sockaddr((const struct sockaddr *)&(addr->dst_sin));
         printf("\tibaddr: rdma_ib_addr{ sgid: 0x");
         for (uint8_t i = 0; i < 16; i++) {
@@ -326,7 +327,7 @@ void print_rdma_addr(const struct rdma_addr *addr)
                 printf("%x", addr->addr.ibaddr.dgid.raw[i]);
         }
         printf(" }\n");
-        printf("}\n");
+        printf("\t}\n");
 }
 
 void print_rdma_route(const struct rdma_route *route)
