@@ -227,8 +227,10 @@ void print_rdma_addrinfo(const struct rdma_addrinfo* rai)
         printf("\tai_port_space: %s\n", rdma_ps_str);
         printf("\tai_src_len: %d\n", rai->ai_src_len);
         printf("\tai_dst_len: %d\n", rai->ai_dst_len);
-        printf("\tai_src_addr: { struct sockaddr* %p }\n", rai->ai_src_addr);
-        printf("\tai_dst_addr: { struct sockaddr* %p }\n", rai->ai_dst_addr);
+        printf("\tai_src_addr: ");
+        print_sockaddr(rai->ai_src_addr);
+        printf("\tai_dst_addr: ");
+        print_sockaddr(rai->ai_dst_addr);
         printf("\tai_src_canonname: %s\n", rai->ai_src_canonname);
         printf("\tai_dst_canonname: %s\n", rai->ai_dst_canonname);
         printf("\tai_route_len: %d\n", rai->ai_route_len);
@@ -376,4 +378,41 @@ void print_rdma_buffer_attr(const struct rdma_buffer_attr *rba)
         printf("\tlength: %u\n", rba->length);
         printf("\tstag: %u\n", rba->stag.local_stag);
         printf("}\n");
+}
+
+void print_sockaddr(const struct sockaddr * addr)
+{
+
+        // struct sockaddr {
+        //    sa_family_t     sa_family;      /* Address family */
+        //    char            sa_data[];      /* Socket address */
+        // };
+
+        // struct sockaddr_in {
+        //    sa_family_t     sin_family;     /* AF_INET */
+        //    in_port_t       sin_port;       /* Port number */
+        //    struct in_addr  sin_addr;       /* IPv4 address */
+        // };
+
+        // struct in_addr {
+        //    in_addr_t s_addr;
+        // };
+
+        if (!addr) {
+                printf("(null)\n");
+                return;
+        }
+
+        if (addr->sa_family == AF_INET) {
+                const struct sockaddr_in *addr_in = (const struct sockaddr_in *)addr;
+                printf("sockaddr_in{\n");
+                printf("\tsin_family: AF_INET\n");
+                printf("\tsin_port: %d\n", ntohs(addr_in->sin_port));
+                printf("\tsin_addr: %s\n", inet_ntoa(addr_in->sin_addr));
+                printf("}\n");
+        } else if (addr->sa_family == AF_INET6) {
+                printf("sockaddr_in6{ sin_family: AF_INET6 }\n");
+        } else {
+                printf("Unknown sockaddr address family\n");
+        }
 }
