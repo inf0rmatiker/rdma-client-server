@@ -319,11 +319,11 @@ void print_rdma_addr(const struct rdma_addr *addr)
         printf("\t\t");
         print_sockaddr((const struct sockaddr *)&(addr->dst_sin));
         printf("\t\tibaddr: rdma_ib_addr{ sgid: 0x");
-        for (uint8_t i = 0; i < 16; i++) {
+        for (uint8_t i = 10; i < 16; i++) {
                 printf("%x", addr->addr.ibaddr.sgid.raw[i]);
         }
         printf(" dgid: 0x");
-        for (uint8_t i = 0; i < 16; i++) {
+        for (uint8_t i = 10; i < 16; i++) {
                 printf("%x", addr->addr.ibaddr.dgid.raw[i]);
         }
         printf(" }\n");
