@@ -144,7 +144,7 @@ int setup_client()
                                 strerror(errno));
 		return -errno;
         }
-
+        print_rdma_route(&cm_client_id->route);
 
         return ret;
 }
