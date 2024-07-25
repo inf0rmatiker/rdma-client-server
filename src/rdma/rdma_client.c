@@ -99,7 +99,7 @@ int setup_client()
 	}
 
         /* We expect the client to connect and generate a
-         * RDMA_CM_EVENT_CONNECT_REQUEST. We wait (block) on the
+         * RDMA_CM_EVENT_ADDR_RESOLVED. We wait (block) on the
          * CM event channel for this event.
 	 */
         struct rdma_cm_event *cm_event = NULL;
