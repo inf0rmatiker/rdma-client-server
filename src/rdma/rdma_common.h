@@ -93,6 +93,16 @@ void print_rdma_buffer_attr(const struct rdma_buffer_attr *);
 void print_sockaddr(const struct sockaddr *);
 
 /*
+ * Prints an rdma_route struct in human-readable terms.
+ */
+void print_rdma_route(const struct rdma_route *);
+
+/*
+ * Prints an rdma_addr struct in human-readable terms.
+ */
+void print_rdma_addr(const struct rdma_addr *);
+
+/*
  * process_rdma_event fully checks and processes an RDMA event on the
  * Connection Manager event channel.
  */

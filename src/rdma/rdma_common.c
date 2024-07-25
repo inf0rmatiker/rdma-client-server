@@ -279,6 +279,72 @@ void print_ibv_device(const struct ibv_device* device)
         printf("}\n");
 }
 
+void print_rdma_addr(const struct rdma_addr *addr)
+{
+
+        // struct rdma_addr {
+        //         union {
+        //                 struct sockaddr		src_addr;
+        //                 struct sockaddr_in	        src_sin;
+        //                 struct sockaddr_in6	        src_sin6;
+        //                 struct sockaddr_storage      src_storage;
+        //         };
+        //         union {
+        //                 struct sockaddr		dst_addr;
+        //                 struct sockaddr_in	        dst_sin;
+        //                 struct sockaddr_in6	        dst_sin6;
+        //                 struct sockaddr_storage      dst_storage;
+        //         };
+        //         union {
+        //                 struct rdma_ib_addr	        ibaddr;
+        //         } addr;
+        // };
+
+        // struct rdma_ib_addr {
+        //         union ibv_gid	sgid;
+        //         union ibv_gid	dgid;
+        //         __be16		pkey;
+        // };
+
+        // union ibv_gid {
+        //         uint8_t		raw[16];
+        //         struct {
+        //                 __be64	subnet_prefix;
+        //                 __be64	interface_id;
+        //         } global;
+        // };
+
+        printf("rdma_addr{");
+        print_sockaddr((const struct sockaddr *)&(addr->src_sin));
+        print_sockaddr((const struct sockaddr *)&(addr->dst_sin));
+        printf("\tibaddr: rdma_ib_addr{ sgid: 0x");
+        for (uint8_t i = 0; i < 16; i++) {
+                printf("%x", addr->addr.ibaddr.sgid.raw[i]);
+        }
+        printf("dgid: 0x");
+        for (uint8_t i = 0; i < 16; i++) {
+                printf("%x", addr->addr.ibaddr.dgid.raw[i]);
+        }
+        printf(" }\n");
+        printf("}\n");
+}
+
+void print_rdma_route(const struct rdma_route *route)
+{
+
+        // struct rdma_route {
+	//         struct rdma_addr	        addr;
+	//         struct ibv_sa_path_rec	*path_rec;
+	//         int			        num_paths;
+        // };
+
+        printf("rdma_route{\n");
+        printf("\taddr: ");
+        print_rdma_addr(&route->addr);
+        printf("\tnum_paths: %d\n", route->num_paths);
+        printf("}\n");
+}
+
 void print_rdma_cm_id(const struct rdma_cm_id* cm_id)
 {
         // struct rdma_cm_id {
@@ -405,11 +471,8 @@ void print_sockaddr(const struct sockaddr * addr)
 
         if (addr->sa_family == AF_INET) {
                 const struct sockaddr_in *addr_in = (const struct sockaddr_in *)addr;
-                printf("sockaddr_in{\n");
-                printf("\tsin_family: AF_INET\n");
-                printf("\tsin_port: %d\n", ntohs(addr_in->sin_port));
-                printf("\tsin_addr: %s\n", inet_ntoa(addr_in->sin_addr));
-                printf("}\n");
+                printf("sockaddr_in{ sin_family: AF_INET, sin_port: %d, sin_addr: %s }\n",
+                       ntohs(addr_in->sin_port), inet_ntoa(addr_in->sin_addr));
         } else if (addr->sa_family == AF_INET6) {
                 printf("sockaddr_in6{ sin_family: AF_INET6 }\n");
         } else {

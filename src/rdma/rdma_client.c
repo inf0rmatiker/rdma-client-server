@@ -123,6 +123,29 @@ int setup_client()
 		return -errno;
         }
 
+
+        /* Resolve the route to the destination address */
+        ret = rdma_resolve_route(cm_client_id, 2000);
+        ret = process_rdma_event(cm_event_channel, &cm_event,
+                                 RDMA_CM_EVENT_ROUTE_RESOLVED);
+        if (ret) {
+                fprintf(stderr, "Failed to process CM event\n");
+                return ret;
+        }
+        /* We got the expected RDMA_CM_EVENT_ADDR_RESOLVED event. ACK the event
+         * to free the allocated memory.
+         */
+        printf("New CM event of type %s received\n",
+                rdma_event_str(cm_event->event));
+        ret = rdma_ack_cm_event(cm_event);
+        if (ret == -1) {
+                fprintf(stderr, "Failed to ACK CM event %s: (%s)\n",
+                                rdma_event_str(cm_event->event),
+                                strerror(errno));
+		return -errno;
+        }
+
+
         return ret;
 }
 
