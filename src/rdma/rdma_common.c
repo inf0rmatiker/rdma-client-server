@@ -321,7 +321,7 @@ void print_rdma_addr(const struct rdma_addr *addr)
         for (uint8_t i = 0; i < 16; i++) {
                 printf("%x", addr->addr.ibaddr.sgid.raw[i]);
         }
-        printf("dgid: 0x");
+        printf(" dgid: 0x");
         for (uint8_t i = 0; i < 16; i++) {
                 printf("%x", addr->addr.ibaddr.dgid.raw[i]);
         }
