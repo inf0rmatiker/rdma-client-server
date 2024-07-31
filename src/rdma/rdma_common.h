@@ -83,6 +83,11 @@ void print_ibv_mr(const struct ibv_mr *mr);
 void print_ibv_sge(const struct ibv_sge *sge);
 
 /*
+ * Prints an ibv_recv_wr struct in human-readable terms.
+ */
+void print_ibv_recv_wr(const struct ibv_recv_wr *);
+
+/*
  * Prints an rdma_buffer_attr struct in human-readable terms.
  */
 void print_rdma_buffer_attr(const struct rdma_buffer_attr *);
