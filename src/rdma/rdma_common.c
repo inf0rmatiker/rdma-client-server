@@ -270,7 +270,7 @@ void print_ibv_device(const struct ibv_device* device)
 
         char transport_type_str[32] = { 0 };
         ibv_transport_type_to_str(device->transport_type, transport_type_str);
-        printf("\transport_type: %s\n", transport_type_str);
+        printf("\ttransport_type: %s\n", transport_type_str);
 
         printf("\tname: %s\n", device->name);
         printf("\tdev_name: %s\n", device->dev_name);

@@ -378,7 +378,7 @@ static int connect_to_server()
         }
         ret = process_rdma_event(cm_event_channel, &cm_event,
                                  RDMA_CM_EVENT_ESTABLISHED);
-        if (!ret) {
+        if (ret) {
                 fprintf(stderr, "Failed to process CM event\n");
                 return ret;
         }
