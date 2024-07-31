@@ -301,6 +301,8 @@ int setup_communication_resources()
         /* Finally, create a QP. After this call, the ibv_qp reference will be
          * stored in the client's CM id: client_cm_id->qp.
          */
+        printf("cm_client_id: \n");
+        print_rdma_cm_id(cm_client_id);
         ret = rdma_create_qp(
                 cm_client_id, /* Which connection id */
                 protection_domain, /* Which protection domain */
