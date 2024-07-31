@@ -34,9 +34,9 @@ struct flag_str {
  * This struct is used to exchange information about buffers between the server
  * and clients.
  *
- * Note: Use the packed attribute so that compiler does not step in and try to pad
- * the struct.
- * For details see: http://gcc.gnu.org/onlinedocs/gcc/Type-Attributes.html
+ * Note: Use the packed attribute so that compiler does not step in and try to
+ * pad the struct. For details see:
+ * http://gcc.gnu.org/onlinedocs/gcc/Type-Attributes.html
  */
 struct __attribute((packed)) rdma_buffer_attr {
   uint64_t address;
@@ -78,7 +78,7 @@ void print_ibv_device(const struct ibv_device* device);
 void print_ibv_mr(const struct ibv_mr *mr);
 
 /*
- * Prints an ibv_mr struct in human-readable terms.
+ * Prints an ibv_sge struct in human-readable terms.
  */
 void print_ibv_sge(const struct ibv_sge *sge);
 

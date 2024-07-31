@@ -422,11 +422,40 @@ void print_ibv_sge(const struct ibv_sge *sge)
         //         uint32_t	lkey;
         // };
 
+        if (!sge) {
+                printf("(null)\n");
+        }
         printf("ibv_sge{\n");
         printf("\taddr: %u\n", sge->addr);
         printf("\tlength: %u\n", sge->length);
         printf("\tlkey: %u\n", sge->lkey);
         printf("}\n");
+}
+
+void print_ibv_recv_wr(const struct ibv_recv_wr *recv_wr)
+{
+        // struct ibv_recv_wr {
+        //         uint64_t		wr_id;
+        //         struct ibv_recv_wr   *next;
+        //         struct ibv_sge	*sg_list;
+        //         int			num_sge;
+        // };
+
+        if (!recv_wr) {
+                printf("(null)\n");
+        }
+        printf("ibv_recv_wr{\n");
+        printf("\twr_id: %d\n", recv_wr->wr_id);
+        printf("\tnext: %p\n", recv_wr->next);
+        printf("\tsg_list: ");
+        print_ibv_sge(recv_wr->sg_list);
+        printf("\tnum_sge: %d\n", recv_wr->num_sge);
+        if (recv_wr->next) {
+                printf("},\n");
+                print_ibv_recv_wr(recv_wr->next);
+        } else {
+                printf("}\n");
+        }
 }
 
 void print_rdma_buffer_attr(const struct rdma_buffer_attr *rba)
