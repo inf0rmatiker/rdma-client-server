@@ -237,9 +237,9 @@ void print_rdma_addrinfo(const struct rdma_addrinfo *rai, int i)
         printf("%s\tai_src_len: %d\n", indent, rai->ai_src_len);
         printf("%s\tai_dst_len: %d\n", indent, rai->ai_dst_len);
         printf("%s\t*ai_src_addr:\n", indent);
-        print_sockaddr(rai->ai_src_addr, i+1);
+        print_sockaddr(rai->ai_src_addr, i+2);
         printf("%s\t*ai_dst_addr:\n", indent);
-        print_sockaddr(rai->ai_dst_addr, i+1);
+        print_sockaddr(rai->ai_dst_addr, i+2);
         printf("%s\t*ai_src_canonname: %s\n", indent, rai->ai_src_canonname);
         printf("%s\t*ai_dst_canonname: %s\n", indent, rai->ai_dst_canonname);
         printf("%s\tai_route_len: %d\n", indent, rai->ai_route_len);
@@ -342,9 +342,9 @@ void print_rdma_addr(const struct rdma_addr *addr, int i)
 
         printf("%srdma_addr{\n", indent);
         printf("%s\tsrc_addr:", indent);
-        print_sockaddr(&addr->src_addr, i+1);
+        print_sockaddr(&addr->src_addr, i+2);
         printf("%s\tdst_addr:", indent);
-        print_sockaddr(&addr->dst_addr, i+1);
+        print_sockaddr(&addr->dst_addr, i+2);
         printf("%s\tibaddr: rdma_ib_addr{ sgid: 0x", indent);
         for (uint8_t i = 10; i < 16; i++) {
                 printf("%x", addr->addr.ibaddr.sgid.raw[i]);
@@ -376,7 +376,7 @@ void print_rdma_route(const struct rdma_route *route, int i)
 
         printf("%srdma_route{\n", indent);
         printf("%s\taddr:\n", indent);
-        print_rdma_addr(&route->addr, i+1);
+        print_rdma_addr(&route->addr, i+2);
         printf("%s\tnum_paths: %d\n", indent, route->num_paths);
         printf("%s}\n", indent);
 }
@@ -415,7 +415,7 @@ void print_rdma_cm_id(const struct rdma_cm_id *cm_id, int i)
                 printf("%s\t*verbs: (null)\n", indent);
         } else if (cm_id->verbs->device) {
                 printf("%s\tverbs:\n", indent);
-                print_ibv_context(cm_id->verbs, i+1);
+                print_ibv_context(cm_id->verbs, i+2);
         }
 
         char rdma_ps_str[16] = { 0 };
@@ -456,7 +456,7 @@ void print_ibv_context(const struct ibv_context *context, int i)
                 printf("%s\t*device: (null)\n", indent);
         } else {
                 printf("%s\t*device:\n", indent);
-                print_ibv_device(context->device, i+1);
+                print_ibv_device(context->device, i+2);
         }
         printf("%s\tops: ibv_context_ops{ ... }\n", indent);
         printf("%s\tcmd_fd: %d\n", indent, context->cmd_fd);
@@ -545,7 +545,7 @@ void print_ibv_recv_wr(const struct ibv_recv_wr *recv_wr, int i)
         printf("%s\twr_id: %d\n", indent, recv_wr->wr_id);
         printf("%s\t*next: %p\n", indent, recv_wr->next);
         printf("%s\t*sg_list:\n");
-        print_ibv_sge(recv_wr->sg_list, i+1);
+        print_ibv_sge(recv_wr->sg_list, i+2);
         printf("%s\tnum_sge: %d\n", indent, recv_wr->num_sge);
         if (recv_wr->next) {
                 printf("%s},\n", indent);
