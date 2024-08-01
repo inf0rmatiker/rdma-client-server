@@ -141,7 +141,7 @@ int setup_server()
 		return -errno;
         }
         printf("Server CM id is created\n");
-        print_rdma_cm_id(cm_server_id);
+        print_rdma_cm_id(cm_server_id, 0);
 
         /* Figure out the rdma_addrinfo of our RDMA device. */
         memset(&hints, 0, sizeof(hints));
@@ -154,7 +154,7 @@ int setup_server()
                 return -errno;
         }
         printf("Successfully retrieved rdma_addrinfo\n");
-        print_rdma_addrinfo(rai);
+        print_rdma_addrinfo(rai, 0);
 
         /* Bind to an RDMA address. */
         ret = rdma_bind_addr(cm_server_id, rai->ai_src_addr);
@@ -302,7 +302,7 @@ int setup_communication_resources()
          * stored in the client's CM id: client_cm_id->qp.
          */
         printf("cm_client_id: \n");
-        print_rdma_cm_id(cm_client_id);
+        print_rdma_cm_id(cm_client_id, 0);
         ret = rdma_create_qp(
                 cm_client_id, /* Which connection id */
                 protection_domain, /* Which protection domain */
@@ -338,8 +338,8 @@ int accept_client_connections()
 		return -errno;
         }
         printf("Successfully registered client metadata attributes memory buffer\n");
-        print_ibv_mr(client_metadata_mr);
-        print_rdma_buffer_attr(&client_metadata_attr);
+        print_ibv_mr(client_metadata_mr, 0);
+        print_rdma_buffer_attr(&client_metadata_attr, 0);
 
         /* Pre-post receive buffer for the client on the QP. This is creating
          * a work request (WR) for the client that indicates where the client

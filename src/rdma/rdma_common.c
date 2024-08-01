@@ -183,7 +183,7 @@ void bitflags_to_str(struct flag_str *pairs, size_t count, int flags, char *res)
 	return;
 }
 
-void print_rdma_addrinfo(const struct rdma_addrinfo* rai)
+void print_rdma_addrinfo(const struct rdma_addrinfo *rai, int i)
 {
         // struct rdma_addrinfo {
         //         int			ai_flags;
@@ -203,8 +203,16 @@ void print_rdma_addrinfo(const struct rdma_addrinfo* rai)
         //         struct rdma_addrinfo	*ai_next;
         // };
 
-        printf("rdma_addrinfo{\n");
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
 
+        if (!rai) {
+                printf("%s(null)\n", indent);
+                return;
+        }
+
+        printf("%srdma_addrinfo{\n", indent);
         struct flag_str ai_flags[] = {
                 {RAI_PASSIVE, "RAI_PASSIVE"},
                 {RAI_NUMERICHOST, "RAI_NUMERICHOST"},
@@ -213,36 +221,41 @@ void print_rdma_addrinfo(const struct rdma_addrinfo* rai)
         };
         char ai_flags_str[64] = { 0 };
         bitflags_to_str(ai_flags, 4, rai->ai_flags, ai_flags_str);
-        printf("\tai_flags: %s\n", ai_flags_str);
+        printf("%s\tai_flags: %s\n", indent, ai_flags_str);
 
         char address_family_str[64] = { 0 };
         ai_family_to_str(rai->ai_family, address_family_str);
-        printf("\tai_family: %s\n", address_family_str);
+        printf("%s\tai_family: %s\n", indent, address_family_str);
 
         char ai_qp_types_str[32] = { 0 };
         ibv_qp_type_to_str(rai->ai_qp_type, ai_qp_types_str);
-        printf("\tai_qp_type: %s\n", ai_qp_types_str);
+        printf("%s\tai_qp_type: %s\n", indent, ai_qp_types_str);
 
         char rdma_ps_str[64] = { 0 };
         rdma_ps_to_str(rai->ai_port_space, rdma_ps_str);
-        printf("\tai_port_space: %s\n", rdma_ps_str);
-        printf("\tai_src_len: %d\n", rai->ai_src_len);
-        printf("\tai_dst_len: %d\n", rai->ai_dst_len);
-        printf("\tai_src_addr: ");
-        print_sockaddr(rai->ai_src_addr);
-        printf("\tai_dst_addr: ");
-        print_sockaddr(rai->ai_dst_addr);
-        printf("\tai_src_canonname: %s\n", rai->ai_src_canonname);
-        printf("\tai_dst_canonname: %s\n", rai->ai_dst_canonname);
-        printf("\tai_route_len: %d\n", rai->ai_route_len);
-        printf("\tai_route: { void* %p }\n", rai->ai_route);
-        printf("\tai_connect_len: %d\n", rai->ai_connect_len);
-        printf("\tai_connect: { void* %p }\n", rai->ai_connect);
-        printf("\tai_next: { struct rdma_addrinfo* %p }\n", rai->ai_next);
-        printf("}\n");
+        printf("%s\tai_port_space: %s\n", indent, rdma_ps_str);
+        printf("%s\tai_src_len: %d\n", indent, rai->ai_src_len);
+        printf("%s\tai_dst_len: %d\n", indent, rai->ai_dst_len);
+        printf("%s\t*ai_src_addr: ", indent);
+        print_sockaddr(rai->ai_src_addr, i+1);
+        printf("%s\t*ai_dst_addr: ");
+        print_sockaddr(rai->ai_dst_addr, i+1);
+        printf("%s\t*ai_src_canonname: %s\n", indent, rai->ai_src_canonname);
+        printf("%s\t*ai_dst_canonname: %s\n", indent, rai->ai_dst_canonname);
+        printf("%s\tai_route_len: %d\n", indent, rai->ai_route_len);
+        printf("%s\t*ai_route: %p\n", indent, rai->ai_route);
+        printf("%s\tai_connect_len: %d\n", indent, rai->ai_connect_len);
+        printf("%s\t*ai_connect: %p\n", indent, rai->ai_connect);
+        printf("%s\t*ai_next: %p\n", indent, rai->ai_next);
+        if (rai->ai_next) {
+                printf("%s},\n", indent);
+                print_rdma_addrinfo(rai->ai_next, i);
+        } else {
+                printf("%s}\n", indent);
+        }
 }
 
-void print_ibv_device(const struct ibv_device* device)
+void print_ibv_device(const struct ibv_device *device, int i)
 {
         // struct ibv_device {
         //         struct _ibv_device_ops	_ops;
@@ -258,31 +271,34 @@ void print_ibv_device(const struct ibv_device* device)
         //         char			        ibdev_path[IBV_SYSFS_PATH_MAX];
         // };
 
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
+
         if (!device) {
-                printf("(null)\n");
+                printf("%s(null)\n", indent);
                 return;
         }
 
-        printf("ibv_device{\n");
+        printf("%sibv_device{\n", indent);
 
         char node_type_str[32] = { 0 };
         ibv_node_type_to_str(device->node_type, node_type_str);
-        printf("\tnode_type: %s\n", node_type_str);
+        printf("%s\tnode_type: %s\n", indent, node_type_str);
 
         char transport_type_str[32] = { 0 };
         ibv_transport_type_to_str(device->transport_type, transport_type_str);
-        printf("\ttransport_type: %s\n", transport_type_str);
+        printf("%s\ttransport_type: %s\n", indent, transport_type_str);
 
-        printf("\tname: %s\n", device->name);
-        printf("\tdev_name: %s\n", device->dev_name);
-        printf("\tdev_path: %s\n", device->dev_path);
-        printf("\tibdev_path: %s\n", device->ibdev_path);
-        printf("}\n");
+        printf("%s\tname: %s\n", indent, device->name);
+        printf("%s\tdev_name: %s\n", indent, device->dev_name);
+        printf("%s\tdev_path: %s\n", indent, device->dev_path);
+        printf("%s\tibdev_path: %s\n", indent, device->ibdev_path);
+        printf("%s}\n", indent);
 }
 
-void print_rdma_addr(const struct rdma_addr *addr)
+void print_rdma_addr(const struct rdma_addr *addr, int i)
 {
-
         // struct rdma_addr {
         //         union {
         //                 struct sockaddr		src_addr;
@@ -315,11 +331,21 @@ void print_rdma_addr(const struct rdma_addr *addr)
         //         } global;
         // };
 
-        printf("rdma_addr{\n\t\t");
-        print_sockaddr((const struct sockaddr *)&(addr->src_sin));
-        printf("\t\t");
-        print_sockaddr((const struct sockaddr *)&(addr->dst_sin));
-        printf("\t\tibaddr: rdma_ib_addr{ sgid: 0x");
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
+
+        if (!addr) {
+                printf("%s(null)\n", indent);
+                return;
+        }
+
+        printf("%srdma_addr{\n", indent);
+        printf("%s\tsrc_addr:", indent);
+        print_sockaddr(&addr->src_addr, i+1);
+        printf("%s\tdst_addr:", indent);
+        print_sockaddr(&addr->dst_addr, i+1);
+        printf("%s\tibaddr: rdma_ib_addr{ sgid: 0x", indent);
         for (uint8_t i = 10; i < 16; i++) {
                 printf("%x", addr->addr.ibaddr.sgid.raw[i]);
         }
@@ -328,26 +354,34 @@ void print_rdma_addr(const struct rdma_addr *addr)
                 printf("%x", addr->addr.ibaddr.dgid.raw[i]);
         }
         printf(" }\n");
-        printf("\t}\n");
+        printf("%s}\n", indent);
 }
 
-void print_rdma_route(const struct rdma_route *route)
+void print_rdma_route(const struct rdma_route *route, int i)
 {
-
         // struct rdma_route {
 	//         struct rdma_addr	        addr;
 	//         struct ibv_sa_path_rec	*path_rec;
 	//         int			        num_paths;
         // };
 
-        printf("rdma_route{\n");
-        printf("\taddr: ");
-        print_rdma_addr(&route->addr);
-        printf("\tnum_paths: %d\n", route->num_paths);
-        printf("}\n");
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
+
+        if (!route) {
+                printf("%s(null)\n", indent);
+                return;
+        }
+
+        printf("%srdma_route{\n", indent);
+        printf("%s\taddr:\n", indent);
+        print_rdma_addr(&route->addr, i+1);
+        printf("%s\tnum_paths: %d\n", indent, route->num_paths);
+        printf("%s}\n", indent);
 }
 
-void print_rdma_cm_id(const struct rdma_cm_id* cm_id)
+void print_rdma_cm_id(const struct rdma_cm_id *cm_id, int i)
 {
         // struct rdma_cm_id {
         //         struct ibv_context	        *verbs;
@@ -367,32 +401,72 @@ void print_rdma_cm_id(const struct rdma_cm_id* cm_id)
         //         enum ibv_qp_type	        qp_type;
         // };
 
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
+
         if(!cm_id){
-		printf("(null)\n");
+		printf("%s(null)\n", indent);
 		return;
 	}
 
-	printf("rdma_cm_id{\n");
-	if(cm_id->verbs && cm_id->verbs->device) {
-                printf("\tverbs: *ibv_context{\n\t\tdevice:\n\t");
-                print_ibv_device(cm_id->verbs->device);
-                printf("}\n");
+	printf("%srdma_cm_id{\n", indent);
+        if (!cm_id->verbs) {
+                printf("%s\t*verbs: (null)\n", indent);
+        } else if (cm_id->verbs->device) {
+                printf("%s\tverbs:\n", indent);
+                print_ibv_context(cm_id->verbs, i+1);
         }
 
         char rdma_ps_str[16] = { 0 };
         rdma_ps_to_str(cm_id->ps, rdma_ps_str);
-        printf("\tps: %s\n", rdma_ps_str);
-        printf("\tport_num: %u\n", cm_id->port_num);
-
+        printf("%s\tps: %s\n", indent, rdma_ps_str);
+        printf("%s\tport_num: %u\n", indent, cm_id->port_num);
 
         char qp_type_str[24] = { 0 };
         ibv_qp_type_to_str(cm_id->qp_type, qp_type_str);
-        printf("\tqp_type: %s\n", qp_type_str);
+        printf("%s\tqp_type: %s\n", indent, qp_type_str);
 
-	printf("}\n");
+	printf("%s}\n", indent);
 }
 
-void print_ibv_mr(const struct ibv_mr *mr)
+void print_ibv_context(const struct ibv_context *context, int i)
+{
+        // struct ibv_context {
+        //         struct ibv_device            *device;
+        //         struct ibv_context_ops	ops;
+        //         int			        cmd_fd;
+        //         int			        async_fd;
+        //         int			        num_comp_vectors;
+        //         pthread_mutex_t		mutex;
+        //         void		                *abi_compat;
+        // };
+
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
+
+        if (!context) {
+                printf("%s(null)\n", indent);
+        }
+
+        printf("%sibv_context{\n", indent);
+        if (!context->device) {
+                printf("%s\t*device: (null)\n", indent);
+        } else {
+                printf("%s\t*device:\n", indent);
+                print_ibv_device(context->device, i+1);
+        }
+        printf("%s\tops: ibv_context_ops{ ... }\n", indent);
+        printf("%s\tcmd_fd: %d\n", indent, context->cmd_fd);
+        printf("%s\tasync_fd: %d\n", indent, context->async_fd);
+        printf("%s\tnum_comp_vectors: %d\n", indent, context->num_comp_vectors);
+        printf("%s\tmutex: { ... }\n", indent);
+        printf("%s\t*abi_compat: %p\n", indent, context->abi_compat);
+        printf("%s}\n", indent);
+}
+
+void print_ibv_mr(const struct ibv_mr *mr, int i)
 {
         // struct ibv_mr {
         //         struct ibv_context   *context;
@@ -404,18 +478,26 @@ void print_ibv_mr(const struct ibv_mr *mr)
         //         uint32_t		rkey;
         // };
 
-        printf("ibv_mr{\n");
-        printf("\tcontext: %p\n", mr->context);
-        printf("\tpd: %p\n", mr->pd);
-        printf("\taddr: %p\n", mr->addr);
-        printf("\tlength: %u\n", mr->length);
-        printf("\thandle: %u\n", mr->handle);
-        printf("\tlkey: %u\n", mr->lkey);
-        printf("\trkey: %u\n", mr->rkey);
-        printf("}\n");
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
+
+        if (!mr) {
+                printf("%s(null)\n", indent);
+        }
+
+        printf("%sibv_mr{\n");
+        printf("%s\tcontext: %p\n", indent, mr->context);
+        printf("%s\tpd: %p\n", indent, mr->pd);
+        printf("%s\taddr: %p\n", indent, mr->addr);
+        printf("%s\tlength: %u\n", indent, mr->length);
+        printf("%s\thandle: %u\n", indent, mr->handle);
+        printf("%s\tlkey: %u\n", indent, mr->lkey);
+        printf("%s\trkey: %u\n", indent, mr->rkey);
+        printf("%s}\n", indent);
 }
 
-void print_ibv_sge(const struct ibv_sge *sge)
+void print_ibv_sge(const struct ibv_sge *sge, int i)
 {
         // struct ibv_sge {
         //         uint64_t	addr;
@@ -423,17 +505,22 @@ void print_ibv_sge(const struct ibv_sge *sge)
         //         uint32_t	lkey;
         // };
 
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
+
         if (!sge) {
-                printf("(null)\n");
+                printf("%s(null)\n", indent);
         }
-        printf("ibv_sge{\n");
-        printf("\taddr: %u\n", sge->addr);
-        printf("\tlength: %u\n", sge->length);
-        printf("\tlkey: %u\n", sge->lkey);
-        printf("}\n");
+
+        printf("%sibv_sge{\n", indent);
+        printf("%s\taddr: %u\n", indent, sge->addr);
+        printf("%s\tlength: %u\n", indent, sge->length);
+        printf("%s\tlkey: %u\n", indent, sge->lkey);
+        printf("%s}\n", indent);
 }
 
-void print_ibv_recv_wr(const struct ibv_recv_wr *recv_wr)
+void print_ibv_recv_wr(const struct ibv_recv_wr *recv_wr, int i)
 {
         // struct ibv_recv_wr {
         //         uint64_t		wr_id;
@@ -442,24 +529,29 @@ void print_ibv_recv_wr(const struct ibv_recv_wr *recv_wr)
         //         int			num_sge;
         // };
 
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
+
         if (!recv_wr) {
-                printf("(null)\n");
+                printf("%s(null)\n", indent);
         }
-        printf("ibv_recv_wr{\n");
-        printf("\twr_id: %d\n", recv_wr->wr_id);
-        printf("\tnext: %p\n", recv_wr->next);
-        printf("\tsg_list: ");
-        print_ibv_sge(recv_wr->sg_list);
-        printf("\tnum_sge: %d\n", recv_wr->num_sge);
+
+        printf("%sibv_recv_wr{\n", indent);
+        printf("%s\twr_id: %d\n", indent, recv_wr->wr_id);
+        printf("%s\t*next: %p\n", indent, recv_wr->next);
+        printf("%s\t*sg_list:\n");
+        print_ibv_sge(recv_wr->sg_list, i+1);
+        printf("%s\tnum_sge: %d\n", indent, recv_wr->num_sge);
         if (recv_wr->next) {
-                printf("},\n");
-                print_ibv_recv_wr(recv_wr->next);
+                printf("%s},\n", indent);
+                print_ibv_recv_wr(recv_wr->next, i);
         } else {
-                printf("}\n");
+                printf("%s}\n", indent);
         }
 }
 
-void print_rdma_buffer_attr(const struct rdma_buffer_attr *rba)
+void print_rdma_buffer_attr(const struct rdma_buffer_attr *rba, int i)
 {
         // struct rdma_buffer_attr {
         //         uint64_t address;
@@ -470,14 +562,22 @@ void print_rdma_buffer_attr(const struct rdma_buffer_attr *rba)
         //         } stag;
         // };
 
-        printf("rdma_buffer_attr{\n");
-        printf("\taddress: %u\n", rba->address);
-        printf("\tlength: %u\n", rba->length);
-        printf("\tstag: %u\n", rba->stag.local_stag);
-        printf("}\n");
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
+
+        if (!rba) {
+                printf("%s(null)\n", indent);
+        }
+
+        printf("%srdma_buffer_attr{\n", indent);
+        printf("%s\taddress: %u\n", indent, rba->address);
+        printf("%s\tlength: %u\n", indent, rba->length);
+        printf("%s\tstag: %u\n", indent, rba->stag.local_stag);
+        printf("%s}\n", indent);
 }
 
-void print_sockaddr(const struct sockaddr * addr)
+void print_sockaddr(const struct sockaddr *addr, int i)
 {
 
         // struct sockaddr {
@@ -495,18 +595,22 @@ void print_sockaddr(const struct sockaddr * addr)
         //    in_addr_t s_addr;
         // };
 
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
+
         if (!addr) {
-                printf("(null)\n");
-                return;
+                printf("%s(null)\n", indent);
         }
 
         if (addr->sa_family == AF_INET) {
                 const struct sockaddr_in *addr_in = (const struct sockaddr_in *)addr;
-                printf("sockaddr_in{ sin_family: AF_INET, sin_port: %d, sin_addr: %s }\n",
+                printf("%ssockaddr_in{ sin_family: AF_INET, sin_port: %d, sin_addr: %s }\n",
+                       indent,
                        ntohs(addr_in->sin_port), inet_ntoa(addr_in->sin_addr));
         } else if (addr->sa_family == AF_INET6) {
-                printf("sockaddr_in6{ sin_family: AF_INET6 }\n");
+                printf("%ssockaddr_in6{ sin_family: AF_INET6 }\n", indent);
         } else {
-                printf("Unknown sockaddr address family\n");
+                printf("%sUnknown sockaddr address family\n", indent);
         }
 }
