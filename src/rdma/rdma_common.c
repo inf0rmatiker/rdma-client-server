@@ -236,9 +236,9 @@ void print_rdma_addrinfo(const struct rdma_addrinfo *rai, int i)
         printf("%s\tai_port_space: %s\n", indent, rdma_ps_str);
         printf("%s\tai_src_len: %d\n", indent, rai->ai_src_len);
         printf("%s\tai_dst_len: %d\n", indent, rai->ai_dst_len);
-        printf("%s\t*ai_src_addr: ", indent);
+        printf("%s\t*ai_src_addr:\n", indent);
         print_sockaddr(rai->ai_src_addr, i+1);
-        printf("%s\t*ai_dst_addr: ");
+        printf("%s\t*ai_dst_addr:\n", indent);
         print_sockaddr(rai->ai_dst_addr, i+1);
         printf("%s\t*ai_src_canonname: %s\n", indent, rai->ai_src_canonname);
         printf("%s\t*ai_dst_canonname: %s\n", indent, rai->ai_dst_canonname);
