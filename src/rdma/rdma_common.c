@@ -448,6 +448,7 @@ void print_ibv_context(const struct ibv_context *context, int i)
 
         if (!context) {
                 printf("%s(null)\n", indent);
+                return;
         }
 
         printf("%sibv_context{\n", indent);
@@ -484,6 +485,7 @@ void print_ibv_mr(const struct ibv_mr *mr, int i)
 
         if (!mr) {
                 printf("%s(null)\n", indent);
+                return;
         }
 
         printf("%sibv_mr{\n");
@@ -511,6 +513,7 @@ void print_ibv_sge(const struct ibv_sge *sge, int i)
 
         if (!sge) {
                 printf("%s(null)\n", indent);
+                return;
         }
 
         printf("%sibv_sge{\n", indent);
@@ -535,6 +538,7 @@ void print_ibv_recv_wr(const struct ibv_recv_wr *recv_wr, int i)
 
         if (!recv_wr) {
                 printf("%s(null)\n", indent);
+                return;
         }
 
         printf("%sibv_recv_wr{\n", indent);
@@ -568,6 +572,7 @@ void print_rdma_buffer_attr(const struct rdma_buffer_attr *rba, int i)
 
         if (!rba) {
                 printf("%s(null)\n", indent);
+                return;
         }
 
         printf("%srdma_buffer_attr{\n", indent);
@@ -601,6 +606,7 @@ void print_sockaddr(const struct sockaddr *addr, int i)
 
         if (!addr) {
                 printf("%s(null)\n", indent);
+                return;
         }
 
         if (addr->sa_family == AF_INET) {
