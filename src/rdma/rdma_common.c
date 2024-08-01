@@ -488,7 +488,7 @@ void print_ibv_mr(const struct ibv_mr *mr, int i)
                 return;
         }
 
-        printf("%sibv_mr{\n");
+        printf("%sibv_mr{\n", indent);
         printf("%s\tcontext: %p\n", indent, mr->context);
         printf("%s\tpd: %p\n", indent, mr->pd);
         printf("%s\taddr: %p\n", indent, mr->addr);
