@@ -60,59 +60,64 @@ void bitflags_to_str(struct flag_str *pairs, size_t count, int flags, char *res)
 /*
  * Prints an rdma_addrinfo struct in human-readable terms.
  */
-void print_rdma_addrinfo(const struct rdma_addrinfo* rai);
+void print_rdma_addrinfo(const struct rdma_addrinfo *, int);
 
 /*
  * Prints an rdma_cm_id struct in human-readable terms.
  */
-void print_rdma_cm_id(const struct rdma_cm_id* cm_id);
+void print_rdma_cm_id(const struct rdma_cm_id *, int);
+
+/*
+ * Prints an ibv_context struct in human-readable terms.
+ */
+void print_ibv_context(const struct ibv_context *, int);
 
 /*
  * Prints an ibv_device struct in human-readable terms.
  */
-void print_ibv_device(const struct ibv_device* device);
+void print_ibv_device(const struct ibv_device *, int);
 
 /*
  * Prints an ibv_mr struct in human-readable terms.
  */
-void print_ibv_mr(const struct ibv_mr *mr);
+void print_ibv_mr(const struct ibv_mr *, int);
 
 /*
  * Prints an ibv_sge struct in human-readable terms.
  */
-void print_ibv_sge(const struct ibv_sge *sge);
+void print_ibv_sge(const struct ibv_sge *, int);
 
 /*
  * Prints an ibv_recv_wr struct in human-readable terms.
  */
-void print_ibv_recv_wr(const struct ibv_recv_wr *);
+void print_ibv_recv_wr(const struct ibv_recv_wr *, int);
 
 /*
  * Prints an rdma_buffer_attr struct in human-readable terms.
  */
-void print_rdma_buffer_attr(const struct rdma_buffer_attr *);
+void print_rdma_buffer_attr(const struct rdma_buffer_attr *, int);
 
 /*
  * Prints a sockaddr struct in human-readable terms.
  */
-void print_sockaddr(const struct sockaddr *);
+void print_sockaddr(const struct sockaddr *, int);
 
 /*
  * Prints an rdma_route struct in human-readable terms.
  */
-void print_rdma_route(const struct rdma_route *);
+void print_rdma_route(const struct rdma_route *, int);
 
 /*
  * Prints an rdma_addr struct in human-readable terms.
  */
-void print_rdma_addr(const struct rdma_addr *);
+void print_rdma_addr(const struct rdma_addr *, int);
 
 /*
  * process_rdma_event fully checks and processes an RDMA event on the
  * Connection Manager event channel.
  */
-int process_rdma_event(struct rdma_event_channel *ec,
-                       struct rdma_cm_event **event,
-                       enum rdma_cm_event_type type);
+int process_rdma_event(struct rdma_event_channel *,
+                       struct rdma_cm_event **,
+                       enum rdma_cm_event_type);
 
 #endif /* RDMA_COMMON_H */

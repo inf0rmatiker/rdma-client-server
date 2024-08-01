@@ -118,7 +118,7 @@ static int setup_client()
 		return -errno;
         }
         printf("Client CM id is created\n");
-        print_rdma_cm_id(cm_client_id);
+        print_rdma_cm_id(cm_client_id, 0);
 
         /* Get RDMA address for server */
         hints.ai_port_space = RDMA_PS_TCP;
@@ -130,7 +130,7 @@ static int setup_client()
                 return -errno;
         }
         printf("Successfully retrieved rdma_addrinfo\n");
-        print_rdma_addrinfo(rai);
+        print_rdma_addrinfo(rai, 0);
 
         /* Resolve destination and optional source addresses from IP addresses
          * to an RDMA address. If successful, the specified rdma_cm_id will be
@@ -189,7 +189,7 @@ static int setup_client()
                                 strerror(errno));
 		return -errno;
         }
-        print_rdma_route(&cm_client_id->route);
+        print_rdma_route(&cm_client_id->route, 0);
         return ret;
 }
 
@@ -321,7 +321,7 @@ static int post_metadata_recv_buffer()
 		return -ENOMEM;
 	}
         printf("Successfully registered server_metadata_mr\n");
-        print_ibv_mr(server_metadata_mr);
+        print_ibv_mr(server_metadata_mr, 0);
 
         /* Associate a scatter-gather entry (SGE) with server metadata MR */
         server_recv_sge.addr = (uint64_t) server_metadata_mr->addr;
@@ -340,7 +340,7 @@ static int post_metadata_recv_buffer()
 		return -errno;
         }
         printf("Successfully pre-posted server_recv_wr:\n");
-        print_ibv_recv_wr(&server_recv_wr);
+        print_ibv_recv_wr(&server_recv_wr, 0);
         return 0;
 }
 
