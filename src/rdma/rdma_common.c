@@ -341,9 +341,9 @@ void print_rdma_addr(const struct rdma_addr *addr, int i)
         }
 
         printf("%srdma_addr{\n", indent);
-        printf("%s\tsrc_addr:", indent);
+        printf("%s\tsrc_addr:\n", indent);
         print_sockaddr(&addr->src_addr, i+2);
-        printf("%s\tdst_addr:", indent);
+        printf("%s\tdst_addr:\n", indent);
         print_sockaddr(&addr->dst_addr, i+2);
         printf("%s\tibaddr: rdma_ib_addr{ sgid: 0x", indent);
         for (uint8_t i = 10; i < 16; i++) {
