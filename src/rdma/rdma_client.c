@@ -82,12 +82,12 @@ static void cleanup_client()
 
         if (cm_client_id) {
                 printf("Destroying rdma_cm_id cm_client_id\n");
-                rdma_destroy_ep(cm_client_id);
+                rdma_destroy_id(cm_client_id);
         }
 
         if (cm_server_id) {
                 printf("Destroying rdma_cm_id cm_server_id\n");
-                rdma_destroy_ep(cm_server_id);
+                rdma_destroy_id(cm_server_id);
         }
 
         if (cm_event_channel) {
