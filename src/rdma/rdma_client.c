@@ -117,8 +117,8 @@ static int setup_client()
                                 strerror(errno));
 		return -errno;
         }
-        printf("Client CM id is created\n");
-        print_rdma_cm_id(cm_client_id, 0);
+        printf("Client CM id is created:\n");
+        print_rdma_cm_id(cm_client_id, 1);
 
         /* Get RDMA address for server */
         hints.ai_port_space = RDMA_PS_TCP;
@@ -129,8 +129,8 @@ static int setup_client()
                                 strerror(errno));
                 return -errno;
         }
-        printf("Successfully retrieved rdma_addrinfo\n");
-        print_rdma_addrinfo(rai, 0);
+        printf("Successfully retrieved client's rdma_addrinfo:\n");
+        print_rdma_addrinfo(rai, 1);
 
         /* Resolve destination and optional source addresses from IP addresses
          * to an RDMA address. If successful, the specified rdma_cm_id will be
@@ -158,7 +158,7 @@ static int setup_client()
         /* We got the expected RDMA_CM_EVENT_ADDR_RESOLVED event. ACK the event
          * to free the allocated memory.
          */
-        printf("New CM event of type %s received\n",
+        printf("\nNew CM event of type %s received\n",
                 rdma_event_str(cm_event->event));
         ret = rdma_ack_cm_event(cm_event);
         if (ret == -1) {
@@ -170,7 +170,14 @@ static int setup_client()
 
 
         /* Resolve the route to the destination address */
+        int timeout_ms = 2000;
         ret = rdma_resolve_route(cm_client_id, 2000);
+        if (ret == -1) {
+                fprintf(stderr, "Failed to resolve route to destination within %d ms: %s\n",
+                                rdma_event_str(cm_event->event),
+                                strerror(errno));
+		return -errno;
+        }
         ret = process_rdma_event(cm_event_channel, &cm_event,
                                  RDMA_CM_EVENT_ROUTE_RESOLVED);
         if (ret) {
