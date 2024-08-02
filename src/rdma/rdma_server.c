@@ -141,7 +141,7 @@ int setup_server()
 		return -errno;
         }
         printf("Server CM id is created\n");
-        print_rdma_cm_id(cm_server_id, 0);
+        print_rdma_cm_id(cm_server_id, 1);
 
         /* Figure out the rdma_addrinfo of our RDMA device. */
         memset(&hints, 0, sizeof(hints));
@@ -154,7 +154,7 @@ int setup_server()
                 return -errno;
         }
         printf("Successfully retrieved rdma_addrinfo\n");
-        print_rdma_addrinfo(rai, 0);
+        print_rdma_addrinfo(rai, 1);
 
         /* Bind to an RDMA address. */
         ret = rdma_bind_addr(cm_server_id, rai->ai_src_addr);
@@ -167,7 +167,7 @@ int setup_server()
                server_port);
 
         /* Initiate a listen on the RDMA IP address and port.
-         * This is a non-blocking call.
+         * This is a non-blocking call. Allow a backlog of up to 8 clients.
          */
         ret = rdma_listen(cm_server_id, 8);
         if (ret == -1) {
@@ -208,7 +208,8 @@ int setup_server()
                                 strerror(errno));
 		return -errno;
         }
-        printf("New RDMA connection stored at %p\n", cm_client_id);
+        printf("New RDMA connection stored in cm_client_id %p:\n", cm_client_id);
+        print_rdma_cm_id(cm_client_id, 1);
 
         return ret;
 }
@@ -236,7 +237,8 @@ int setup_communication_resources()
                         strerror(errno));
                 return -errno;
         }
-        printf("Created Protection Domain\n");
+        printf("Created Protection Domain for client's verbs provider:\n");
+        print_ibv_pd(protection_domain, 1);
 
         /* Create a Completion Channel (CC) where I/O completion notifications
          * are sent. A CC is tied to an RDMA device, so we will use
@@ -256,13 +258,12 @@ int setup_communication_resources()
 	 * information about the work completion. An I/O request in RDMA world
 	 * is called "work"
 	 */
-	completion_queue = ibv_create_cq(
-                cm_client_id->verbs /* which device */,
-		16 /* maximum capacity */,
-		NULL /* user context, not used here */,
-		io_completion_channel /* IO completion channel to use */,
-		0 /* signaling vector, not used here */
-        );
+	completion_queue = ibv_create_cq(cm_client_id->verbs, /* which device */
+		                         16, /* maximum capacity */
+		                         NULL, /* user context, not used here */
+		                         io_completion_channel, /* IO completion channel to use */
+		                         0 /* signaling vector, not used here */
+                                        );
 	if (!completion_queue) {
                 fprintf(stderr, "Failed to create Completion Queue: %s\n",
                         strerror(errno));
@@ -289,7 +290,8 @@ int setup_communication_resources()
          * To do this, we first need to set up the QP initial requested
          * attributes struct (ibv_qp_init_attr).
          */
-        memset(&qp_init_attr, 0, sizeof qp_init_attr);
+        bzero(&qp_init_attr, sizeof qp_init_attr);
+        qp_init_attr.qp_type = IBV_QPT_RC; /* QP type Reliable Connection */
         qp_init_attr.cap.max_recv_sge = 2; /* Max SGE per receive posting */
         qp_init_attr.cap.max_send_sge = 2; /* Max SGE per send posting */
         qp_init_attr.cap.max_recv_wr = 8;  /* Max receive posting capacity */
@@ -301,8 +303,6 @@ int setup_communication_resources()
         /* Finally, create a QP. After this call, the ibv_qp reference will be
          * stored in the client's CM id: client_cm_id->qp.
          */
-        printf("cm_client_id: \n");
-        print_rdma_cm_id(cm_client_id, 0);
         ret = rdma_create_qp(
                 cm_client_id, /* Which connection id */
                 protection_domain, /* Which protection domain */
