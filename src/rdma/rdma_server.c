@@ -313,6 +313,8 @@ int setup_communication_resources()
                 if (cm_client_id->qp) {
                         printf("cm_client_id->qp is NOT NULL!\n");
                 }
+                printf("cm_client_id->verbs: %p\n", cm_client_id->verbs);
+                printf("qp_init_attr.qp_context: %p\n", qp_init_attr.qp_context);
                 fprintf(stderr, "Failed to create QP: %s\n",
                         strerror(errno));
 		return -errno;
