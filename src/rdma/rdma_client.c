@@ -246,7 +246,7 @@ static int create_completion_queue()
 			                 16, /* maximum capacity */
 			                 NULL /* user context, not used here */,
 			                 completion_channel /* IO completion channel */,
-			                 0/* signaling vector, not used here */
+			                 0 /* Signaling vector, not used here */
                                         );
 	if (!completion_queue) {
 		fprintf(stderr, "Failed to create Completion Queue: %s\n",
@@ -382,7 +382,7 @@ static int connect_to_server()
                 fprintf(stderr, "Failed to process CM event\n");
                 return ret;
         }
-        /* We got the expected RDMA_CM_EVENT_ADDR_RESOLVED event. ACK the event
+        /* We got the expected RDMA_CM_EVENT_ESTABLISHED event. ACK the event
          * to free the allocated memory.
          */
         printf("New CM event of type %s received\n",
