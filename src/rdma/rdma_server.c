@@ -31,9 +31,9 @@ static struct ibv_mr *server_metadata_mr = NULL;
 static struct ibv_mr *server_buffer_mr = NULL;
 
 /* Receive buffer to which the server will store metadata about the client */
-static struct rdma_buffer_attr client_metadata_attr;
+static struct rdma_buffer_attr client_metadata;
 /* Send buffer from where client will retrieve metadata about the server */
-static struct rdma_buffer_attr server_metadata_attr;
+static struct rdma_buffer_attr server_metadata;
 /* Server's send and receive scatter-gather entries (SGE) for work requests */
 static struct ibv_sge client_recv_sge, server_send_sge;
 
@@ -309,17 +309,6 @@ int setup_communication_resources()
                 &qp_init_attr /* Initial QP attributes */
         );
         if (ret) {
-                fprintf(stderr, "DEBUG\n");
-                if (cm_client_id->qp) {
-                        printf("cm_client_id->qp is NOT NULL!\n");
-                }
-                printf("cm_client_id->verbs: %p\n", cm_client_id->verbs);
-                printf("qp_init_attr.qp_context: %p\n", qp_init_attr.qp_context);
-
-                if ((cm_client_id->recv_cq && qp_init_attr.recv_cq && cm_client_id->recv_cq != qp_init_attr.recv_cq) ||
-                    (cm_client_id->send_cq && qp_init_attr.send_cq && cm_client_id->send_cq != qp_init_attr.send_cq)) {
-                        printf("FAILED HERE!\n");
-                }
                 fprintf(stderr, "Failed to create QP: %s\n",
                         strerror(errno));
 		return -errno;
@@ -328,6 +317,105 @@ int setup_communication_resources()
         printf("Created QP for client on server\n");
 
         return ret;
+}
+
+static int post_metadata_recv_buffer()
+{
+        /* Register memory region (MR) where client metadata will be stored */
+        client_metadata_mr = ibv_reg_mr(protection_domain,
+                                        &client_metadata,
+                                        sizeof(client_metadata),
+                                        IBV_ACCESS_LOCAL_WRITE);
+        if(!client_metadata_mr){
+		fprintf(stderr, "Failed to register server_metadata_mr: -ENOMEM\n");
+		return -ENOMEM;
+	}
+        printf("Successfully registered server_metadata_mr:\n");
+        print_ibv_mr(client_metadata_mr, 1);
+
+        /* Initialize the client receive SGE with where we want the data
+         * received from the client to go.
+         */
+        client_recv_sge.addr = (uint64_t) client_metadata_mr->addr;
+        client_recv_sge.length = client_metadata_mr->length;
+        client_recv_sge.lkey = client_metadata_mr->lkey;
+        /* Create a WR with the client receive SGE. */
+        memset(&client_recv_wr, 0, sizeof(client_recv_wr));
+        client_recv_wr.sg_list = &client_recv_sge;
+        client_recv_wr.num_sge = 1;
+        /* Pre-post the WR to the client queue-pair */
+        int ret = ibv_post_recv(client_queue_pair, /* client QP */
+                                &client_recv_wr, /* Recieve WR */
+                                &bad_client_recv_wr /* Error WR */
+                               );
+        if (ret) {
+                fprintf(stderr, "Failed to pre-post client receive WR to QP: %s\n",
+                        strerror(ret));
+        }
+        printf("Successfully pre-posted client metadata receive buffer to client QP:\n");
+        print_ibv_mr(client_metadata_mr, 1);
+
+        return ret;
+}
+
+static int accept_client_connection()
+{
+        struct rdma_conn_param conn_param;
+	struct rdma_cm_event *cm_event = NULL;
+
+        /* Before we accept a connection we have to fill out an rdma_conn_param 
+         * struct containing connection properties:
+         *
+         * - initiator_depth: The maximum number of outstanding RDMA read and
+         * atomic operations that the local side will have to the remote
+         * side.
+         * - responder_resources: The maximum number of outstanding RDMA read
+         * and atomic operations that the local side will accept from the remote
+         * side.
+         * - retry_count: The maximum number of times that a data transfer
+         * operation should be retried on the connection when an error occurs.
+         */
+        conn_param.initiator_depth = 3;
+	conn_param.responder_resources = 3;
+	conn_param.retry_count = 3;
+        /* Note how we use rdma_accept() here instead of the client's
+         * rdma_connect(). After this, we'll expect an RDMA_CM_EVENT_ESTABLISHED
+         * CM event.
+         */
+        int ret = rdma_accept(cm_client_id, &conn_param);
+        if (ret) {
+                fprintf(stderr, "Failed to accept connection from client: %s\n",
+                        strerror(errno));
+		return -errno;
+        }
+        ret = process_rdma_event(cm_event_channel, &cm_event,
+                                 RDMA_CM_EVENT_ESTABLISHED);
+        if (ret) {
+                fprintf(stderr, "Failed to process CM event\n");
+                return ret;
+        }
+
+        /* We got the expected RDMA_CM_EVENT_ESTABLISHED event. ACK the event
+         * to free the allocated memory.
+         */
+        printf("New CM event of type %s received\n",
+                rdma_event_str(cm_event->event));
+        ret = rdma_ack_cm_event(cm_event);
+        if (ret == -1) {
+                fprintf(stderr, "Failed to ACK CM event %s: (%s)\n",
+                                rdma_event_str(cm_event->event),
+                                strerror(errno));
+		return -errno;
+        }
+        printf("Successfully accepted connection from client RDMA device\n");
+
+        /* Optional: extract connection information from cm_client_id */
+        struct sockaddr_in client_sockaddr = { 0 };
+        memcpy(&client_sockaddr, rdma_get_peer_addr(cm_client_id),
+               sizeof(client_sockaddr));
+        printf("Client connection accepted from %s\n",
+               inet_ntoa(client_sockaddr.sin_addr));
+        return 0;
 }
 
 void print_usage()
@@ -357,11 +445,29 @@ int main(int argc, char **argv)
         }
 
         int ret = setup_server();
-        if (ret)
-                fprintf(stderr, "Failed to establish the server\n");
+        if (ret) {
+                cleanup_server();
+                return ret;
+        }
+
         ret = setup_communication_resources();
-        if (ret)
-                fprintf(stderr, "Failed to establish communication resources\n");
+        if (ret) {
+                cleanup_server();
+                return ret;
+        }
+
+        ret = post_metadata_recv_buffer();
+        if (ret) {
+                cleanup_server();
+                return ret;
+        }
+
+        ret = accept_client_connection();
+        if (ret) {
+                cleanup_server();
+                return ret;
+        }
+
 
         /* Allocate server buffer */
         server_buffer = (char *)calloc(4096, sizeof(char));
