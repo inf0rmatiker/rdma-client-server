@@ -315,6 +315,11 @@ int setup_communication_resources()
                 }
                 printf("cm_client_id->verbs: %p\n", cm_client_id->verbs);
                 printf("qp_init_attr.qp_context: %p\n", qp_init_attr.qp_context);
+
+                if ((cm_client_id->recv_cq && qp_init_attr.recv_cq && cm_client_id->recv_cq != qp_init_attr.recv_cq) ||
+                    (cm_client_id->send_cq && qp_init_attr.send_cq && cm_client_id->send_cq != qp_init_attr.send_cq)) {
+                        printf("FAILED HERE!\n");
+                }
                 fprintf(stderr, "Failed to create QP: %s\n",
                         strerror(errno));
 		return -errno;
