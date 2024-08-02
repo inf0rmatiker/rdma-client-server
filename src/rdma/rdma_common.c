@@ -499,6 +499,72 @@ void print_ibv_mr(const struct ibv_mr *mr, int i)
         printf("%s}\n", indent);
 }
 
+void print_ibv_qp(const struct ibv_qp *qp, int i)
+{
+        // struct ibv_qp {
+        //         struct ibv_context   *context;
+        //         void		        *qp_context;
+        //         struct ibv_pd	*pd;
+        //         struct ibv_cq	*send_cq;
+        //         struct ibv_cq	*recv_cq;
+        //         struct ibv_srq	*srq;
+        //         uint32_t		handle;
+        //         uint32_t		qp_num;
+        //         enum ibv_qp_state    state;
+        //         enum ibv_qp_type	qp_type;
+
+        //         pthread_mutex_t	mutex;
+        //         pthread_cond_t	cond;
+        //         uint32_t		events_completed;
+        // };
+
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
+
+        if (!qp) {
+                printf("%s(null)\n", indent);
+                return;
+        }
+        printf("%sibv_qp{\n", indent);
+        if (!qp->context) {
+                printf("%s\t*context: (null)\n", indent);
+        } else {
+                printf("%s\t*context:\n", indent);
+                print_ibv_context(qp->context, i+2);
+        }
+        printf("%s\t*qp_context: %p\n", indent, qp->qp_context);
+        if (!qp->pd) {
+                printf("%s\t*pd: (null)\n", indent);
+        } else {
+                printf("%s\t*pd:\n", indent);
+                print_ibv_pd(qp->pd, i+2);
+        }
+        printf("%s}\n", indent);
+}
+
+void print_ibv_pd(const struct ibv_pd *pd, int i)
+{
+        // struct ibv_pd {
+        //         struct ibv_context   *context;
+        //         uint32_t		handle;
+        // };
+
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
+
+        if (!pd) {
+                printf("%s(null)\n", indent);
+                return;
+        }
+
+        printf("%sibv_pd{\n", indent);
+        printf("%s\t*context: %p\n", indent, pd->context);
+        printf("%s\thandle: %u\n", indent, pd->handle);
+        printf("%s}\n", indent);
+}
+
 void print_ibv_sge(const struct ibv_sge *sge, int i)
 {
         // struct ibv_sge {
@@ -544,7 +610,7 @@ void print_ibv_recv_wr(const struct ibv_recv_wr *recv_wr, int i)
         printf("%sibv_recv_wr{\n", indent);
         printf("%s\twr_id: %d\n", indent, recv_wr->wr_id);
         printf("%s\t*next: %p\n", indent, recv_wr->next);
-        printf("%s\t*sg_list:\n");
+        printf("%s\t*sg_list:\n", indent);
         print_ibv_sge(recv_wr->sg_list, i+2);
         printf("%s\tnum_sge: %d\n", indent, recv_wr->num_sge);
         if (recv_wr->next) {

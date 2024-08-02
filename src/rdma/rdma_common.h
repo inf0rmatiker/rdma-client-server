@@ -83,6 +83,16 @@ void print_ibv_device(const struct ibv_device *, int);
 void print_ibv_mr(const struct ibv_mr *, int);
 
 /*
+ * Prints an ibv_qp struct in human-readable terms.
+ */
+void print_ibv_qp(const struct ibv_qp *, int);
+
+/*
+ * Prints an ibv_pd struct in human-readable terms.
+ */
+void print_ibv_pd(const struct ibv_pd *, int);
+
+/*
  * Prints an ibv_sge struct in human-readable terms.
  */
 void print_ibv_sge(const struct ibv_sge *, int);

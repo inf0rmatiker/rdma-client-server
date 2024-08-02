@@ -309,6 +309,10 @@ int setup_communication_resources()
                 &qp_init_attr /* Initial QP attributes */
         );
         if (ret) {
+                fprintf(stderr, "DEBUG\n");
+                if (cm_client_id->qp) {
+                        printf("cm_client_id->qp is NOT NULL!\n");
+                }
                 fprintf(stderr, "Failed to create QP: %s\n",
                         strerror(errno));
 		return -errno;
@@ -317,98 +321,6 @@ int setup_communication_resources()
         printf("Created QP for client on server\n");
 
         return ret;
-}
-
-/* Posts a receive buffer and accepts a client RDMA connection. */
-int accept_client_connections()
-{
-        int ret = 0;
-
-        /* Register the client metadata buffer as an ibv_mr */
-        client_metadata_mr = ibv_reg_mr(
-                protection_domain, /* use main protection domain */
-                &client_metadata_attr, /* the memory to register */
-                sizeof(client_metadata_attr), /* size of memory to register */
-                (IBV_ACCESS_LOCAL_WRITE) /* only allow local RDMA device to write to it*/
-        );
-        if (!client_metadata_mr) {
-                /* Most likely out-of-memory (OOM), so error would be ENOMEM */
-                fprintf(stderr, "Failed to register client metadata attributes: %s\n",
-                        strerror(errno));
-		return -errno;
-        }
-        printf("Successfully registered client metadata attributes memory buffer\n");
-        print_ibv_mr(client_metadata_mr, 0);
-        print_rdma_buffer_attr(&client_metadata_attr, 0);
-
-        /* Pre-post receive buffer for the client on the QP. This is creating
-         * a work request (WR) for the client that indicates where the client
-         * should place its metadata.
-         */
-	//client_recv_sge.addr = (uint64_t) client_metadata_mr->addr; // same as &client_buffer_attr
-	//client_recv_sge.length = client_metadata_mr->length;
-	//client_recv_sge.lkey = client_metadata_mr->lkey;
-	/* Link SGE to the work request */
-	//memset(&client_recv_wr, 0, sizeof(client_recv_wr));
-	//client_recv_wr.sg_list = &client_recv_sge;
-	//client_recv_wr.num_sge = 1;
-	//ret = ibv_post_recv(
-        //      client_queue_pair /* which QP */,
-	// 	&client_recv_wr /* receive work request*/,
-	// 	&bad_client_recv_wr /* error WRs */
-        // );
-
-
-        return 0;
-}
-
-int run()
-{
-
-
-        /*
-        struct ibv_qp_init_attr init_attr;
-        struct ibv_qp_attr qp_attr;
-        struct ibv_wc wc;
-        memset(&init_attr, 0, sizeof init_attr);
-        init_attr.cap.max_send_wr = init_attr.cap.max_recv_wr = 1;
-        init_attr.cap.max_send_sge = init_attr.cap.max_recv_sge = 1;
-        init_attr.cap.max_inline_data = 40;
-        init_attr.sq_sig_all = 1;
-        ret = rdma_create_ep(&cm_server_id, res, NULL, &init_attr);
-        if (ret) {
-                fprintf(stderr, "Failed rdma_create_ep with errno: (%s)\n",
-                                strerror(errno));
-                cleanup_server();
-                return -errno;
-        }
-
-        ret = rdma_listen(cm_server_id, 0);
-        if (ret) {
-                fprintf(stderr, "Failed rdma_listen with errno: (%s)\n",
-                                strerror(errno));
-                cleanup_server();
-                return -errno;
-        }
-
-        ret = rdma_get_request(cm_server_id, &cm_client_id);
-        if (ret) {
-                fprintf(stderr, "Failed rdma_get_request with errno: (%s)\n",
-                                strerror(errno));
-                cleanup_server();
-                return -errno;
-        }
-        printf("Got request\n");
-
-
-        rdma_disconnect(cm_client_id);
-        rdma_destroy_ep(cm_client_id);
-        rdma_destroy_ep(cm_server_id);
-        rdma_freeaddrinfo(res);
-
-        */
-
-        return 0;
 }
 
 void print_usage()
