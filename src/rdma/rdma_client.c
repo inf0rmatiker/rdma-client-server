@@ -168,13 +168,12 @@ static int setup_client()
 		return -errno;
         }
 
-
         /* Resolve the route to the destination address */
         int timeout_ms = 2000;
         ret = rdma_resolve_route(cm_client_id, 2000);
         if (ret == -1) {
                 fprintf(stderr, "Failed to resolve route to destination within %d ms: %s\n",
-                                rdma_event_str(cm_event->event),
+                                timeout_ms,
                                 strerror(errno));
 		return -errno;
         }
@@ -216,7 +215,8 @@ static int setup_protection_domain()
                         strerror(errno));
                 return -errno;
         }
-        printf("Created Protection Domain\n");
+        printf("Created Protection Domain:\n");
+        print_ibv_pd(protection_domain, 1);
         return 0;
 }
 
@@ -237,7 +237,7 @@ static int create_completion_channel()
                         strerror(errno));
                 return -errno;
         }
-        printf("Created Completion Channel\n");
+        printf("Created Completion Channel");
         return 0;
 }
 
@@ -299,7 +299,8 @@ static int setup_queue_pairs()
                 return -errno;
 	}
         queue_pair = cm_client_id->qp;
-        printf("Created client Queue Pair\n");
+        printf("Created client Queue Pair:\n");
+        print_ibv_qp(queue_pair, 1);
         return 0;
 }
 
