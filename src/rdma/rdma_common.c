@@ -381,6 +381,26 @@ void print_rdma_route(const struct rdma_route *route, int i)
         printf("%s}\n", indent);
 }
 
+void print_rdma_event_channel(const struct rdma_event_channel *ec, int i)
+{
+        // struct rdma_event_channel {
+        //         int			fd;
+        // };
+
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
+
+        if (!ec) {
+                printf("%s(null)\n", indent);
+                return;
+        }
+
+        printf("%srdma_event_channel{\n", indent);
+        printf("%s\tfd: %d\n", indent, ec->fd);
+        printf("%s}\n", indent);
+}
+
 void print_rdma_cm_id(const struct rdma_cm_id *cm_id, int i)
 {
         // struct rdma_cm_id {
@@ -409,7 +429,6 @@ void print_rdma_cm_id(const struct rdma_cm_id *cm_id, int i)
 		printf("%s(null)\n", indent);
 		return;
 	}
-
 	printf("%srdma_cm_id{\n", indent);
         if (!cm_id->verbs) {
                 printf("%s\t*verbs: (null)\n", indent);
@@ -417,11 +436,40 @@ void print_rdma_cm_id(const struct rdma_cm_id *cm_id, int i)
                 printf("%s\tverbs:\n", indent);
                 print_ibv_context(cm_id->verbs, i+2);
         }
+        if (!cm_id->channel) {
+                printf("%s\t*channel: (null)\n", indent);
+        } else {
+                printf("%s\t*channel:\n", indent);
+                print_rdma_event_channel(cm_id->channel, i+2);
+        }
+        printf("%s\t*context: %p\n", indent, cm_id->context);
+        if (!cm_id->qp) {
+                printf("%s\t*qp: (null)\n", indent);
+        } else {
+                printf("%s\t*qp:\n", indent);
+                print_ibv_qp(cm_id->qp, i+2);
+        }
+        printf("%s\troute:\n", indent);
+        print_rdma_route(&cm_id->route, i+2);
 
         char rdma_ps_str[16] = { 0 };
         rdma_ps_to_str(cm_id->ps, rdma_ps_str);
         printf("%s\tps: %s\n", indent, rdma_ps_str);
         printf("%s\tport_num: %u\n", indent, cm_id->port_num);
+
+        printf("%s\t*event: %p\n", indent, cm_id->event);
+        printf("%s\t*send_cq_channel: %p\n", indent, cm_id->send_cq_channel);
+        printf("%s\t*send_cq: %p\n", indent, cm_id->send_cq);
+        printf("%s\t*recv_cq_channel: %p\n", indent, cm_id->recv_cq_channel);
+        printf("%s\t*recv_cq: %p\n", indent, cm_id->recv_cq);
+        printf("%s\t*srq: %p\n", indent, cm_id->srq);
+
+        if (!cm_id->pd) {
+                printf("%s\t*pd: (null)\n", indent);
+        } else {
+                printf("%s\t*pd:\n", indent);
+                print_ibv_pd(cm_id->pd, i+2);
+        }
 
         char qp_type_str[24] = { 0 };
         ibv_qp_type_to_str(cm_id->qp_type, qp_type_str);
@@ -512,7 +560,6 @@ void print_ibv_qp(const struct ibv_qp *qp, int i)
         //         uint32_t		qp_num;
         //         enum ibv_qp_state    state;
         //         enum ibv_qp_type	qp_type;
-
         //         pthread_mutex_t	mutex;
         //         pthread_cond_t	cond;
         //         uint32_t		events_completed;

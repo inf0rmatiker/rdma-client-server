@@ -65,6 +65,11 @@ void print_rdma_addrinfo(const struct rdma_addrinfo *, int);
 /*
  * Prints an rdma_cm_id struct in human-readable terms.
  */
+void print_rdma_event_channel(const struct rdma_event_channel *, int);
+
+/*
+ * Prints an rdma_cm_id struct in human-readable terms.
+ */
 void print_rdma_cm_id(const struct rdma_cm_id *, int);
 
 /*
