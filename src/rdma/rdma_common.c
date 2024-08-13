@@ -786,7 +786,7 @@ void print_rdma_buffer_attr(const struct rdma_buffer_attr *rba, int i)
         }
 
         printf("%srdma_buffer_attr{\n", indent);
-        printf("%s\taddress: %u\n", indent, rba->address);
+        printf("%s\taddress: %p\n", indent, (void *)rba->address);
         printf("%s\tlength: %u\n", indent, rba->length);
         printf("%s\tstag: %u\n", indent, rba->stag.local_stag);
         printf("%s}\n", indent);
