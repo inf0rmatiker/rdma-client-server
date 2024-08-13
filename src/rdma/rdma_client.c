@@ -30,6 +30,7 @@ static struct ibv_qp *queue_pair = NULL;
 static struct ibv_sge client_send_sge, server_recv_sge;
 
 /* --- Work Request resources */
+static struct ibv_send_wr client_send_wr, *bad_client_send_wr;
 static struct ibv_recv_wr server_recv_wr, *bad_server_recv_wr;
 
 /* --- Memory resources --- */
@@ -46,8 +47,51 @@ static struct ibv_mr *server_metadata_mr = NULL;
 
 static void cleanup_client()
 {
+        int ret = 0;
+
+        if (cm_client_id) {
+                ret = rdma_disconnect(cm_client_id);
+                if (ret) {
+                        fprintf(stderr, "Disconnecting from server failed with errno: (%s)\n",
+                                strerror(errno));
+                        ret = 0;
+                } else {
+                        printf("Successfully disconnected from server\n");
+                }
+                struct rdma_cm_event *cm_event = NULL;
+                ret = process_rdma_event(cm_event_channel, &cm_event,
+                                         RDMA_CM_EVENT_DISCONNECTED);
+                if (ret) {
+                        fprintf(stderr, "Failed to process CM event\n");
+                        ret = 0;
+                } else {
+                        printf("Received CM event of type %s\n",
+                               rdma_event_str(cm_event->event));
+                }
+                ret = rdma_ack_cm_event(cm_event);
+                if (ret) {
+                        fprintf(stderr, "Failed to ACK CM event\n");
+                        ret = 0;
+                }
+        }
+
         if (message) {
                 free(message);
+        }
+
+        if (client_metadata_mr) {
+                printf("Deregistering ibv_mr client_metadata_mr\n");
+                ibv_dereg_mr(client_metadata_mr);
+        }
+
+        if (client_src_mr) {
+                printf("Deregistering ibv_mr client_src_mr\n");
+                ibv_dereg_mr(client_src_mr);
+        }
+
+        if (client_dst_mr) {
+                printf("Deregistering ibv_mr client_dst_mr\n");
+                ibv_dereg_mr(client_dst_mr);
         }
 
         if (server_metadata_mr) {
@@ -237,7 +281,7 @@ static int create_completion_channel()
                         strerror(errno));
                 return -errno;
         }
-        printf("Created Completion Channel");
+        printf("Created Completion Channel\n");
         return 0;
 }
 
@@ -406,6 +450,107 @@ static int connect_to_server()
         return 0;
 }
 
+/*
+ * 1. Sends our client metadata to the server, completing the server's pre-posted
+ *    WR for client metadata.
+ * 2. Processes the Work Completions for both our send operation, and receiving
+ *    the server's metadata that we pre-posted as a WR earlier.
+ *
+ * Manpages: https://man7.org/linux/man-pages/man3/ibv_reg_mr.3.html
+ *           https://man7.org/linux/man-pages/man3/ibv_post_send.3.html
+ * RDMAmojo: https://www.rdmamojo.com/2012/09/07/ibv_reg_mr/
+ *           https://www.rdmamojo.com/2013/01/26/ibv_post_send/
+ */
+static int exchange_metadata_with_server()
+{
+        /* First we need to register our source memory region, where
+         * the message is stored. We're allowing the server to read/write
+         * directly to it, so we need to open the access permissions.
+         * Registering this MR gives us the lkey/rkey, which we'll then
+         * use to satisfy the server's WR for the client metadata.
+         */
+        client_src_mr = ibv_reg_mr(
+                protection_domain, /* Client's PD */
+                message, /* Source message buffer we're registering */
+                strlen(message), /* Size of message buffer, in bytes */
+                (IBV_ACCESS_LOCAL_WRITE|
+	         IBV_ACCESS_REMOTE_READ|
+		 IBV_ACCESS_REMOTE_WRITE) /* Access flags for message */
+        );
+        if (!client_src_mr) {
+                fprintf(stderr, "Failed to register client_src_mr: %s\n",
+                        strerror(errno));
+		return -errno;
+        }
+
+        /* Prepare the client metadata buffer with information about the MR we
+         * just registered above.
+         */
+	client_metadata.address = (uint64_t) client_src_mr->addr;
+	client_metadata.length = client_src_mr->length;
+	client_metadata.stag.local_stag = client_src_mr->lkey;
+
+        /* Register client metadata MR */
+        client_metadata_mr = ibv_reg_mr(
+                protection_domain, /* Client's PD */
+                &client_metadata, /* Client's metadata buffer */
+                sizeof(client_metadata), /* Size of client's metadata buffer */
+                IBV_ACCESS_LOCAL_WRITE /* Only allow our RDMA device to write */
+        );
+	if (!client_metadata_mr) {
+		fprintf(stderr, "Failed to register client_metadata_mr: %s\n",
+                        strerror(errno));
+		return -errno;
+	}
+
+        /* Populate the client send SGE with information about our metadata MR
+         */
+	client_send_sge.addr = (uint64_t) client_metadata_mr->addr;
+	client_send_sge.length = (uint32_t) client_metadata_mr->length;
+	client_send_sge.lkey = client_metadata_mr->lkey;
+
+        /* Link to the send WR. This is a SEND operation, meaning it will
+         * complete some RECV WR.
+         */
+        bzero(&client_send_wr, sizeof(client_send_wr));
+	client_send_wr.sg_list = &client_send_sge;
+	client_send_wr.num_sge = 1;
+	client_send_wr.opcode = IBV_WR_SEND;
+	client_send_wr.send_flags = IBV_SEND_SIGNALED;
+
+        /* Post the send WR to the client QP, containing metadata information
+         * that the server requested.
+         */
+        int ret = ibv_post_send(
+                queue_pair,
+                &client_send_wr,
+                &bad_client_send_wr
+        );
+        if (ret) {
+                fprintf(stderr, "Failed to send client metadata: %s\n",
+                        strerror(errno));
+		return -errno;
+        }
+
+        /* Process two WCs, one for our send, and one for receiving the
+         * server's metadata that we pre-posted earlier.
+         */
+        int expected_wc = 2;
+        struct ibv_wc work_completions[expected_wc];
+        ret = process_work_completion_event(
+                completion_channel,
+                work_completions,
+                expected_wc
+        );
+        if (ret != expected_wc) {
+                fprintf(stderr, "Failed to process %d Work Completions: ret=%d\n",
+                        expected_wc, ret);
+		return ret;
+        }
+        printf("Got %d Work Completions\n", ret);
+        print_rdma_buffer_attr(&server_metadata, 0);
+}
+
 static void print_usage()
 {
         printf("Usage:\n\t./rdma-client -m <message> -s <server_host> -p <server_port>\n");
@@ -490,6 +635,12 @@ int main(int argc, char **argv)
         }
 
         ret = connect_to_server();
+        if (ret) {
+                cleanup_client();
+                return ret;
+        }
+
+        ret = exchange_metadata_with_server();
         if (ret) {
                 cleanup_client();
                 return ret;
