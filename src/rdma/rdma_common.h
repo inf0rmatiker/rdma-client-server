@@ -130,9 +130,42 @@ void print_rdma_addr(const struct rdma_addr *, int);
 /*
  * process_rdma_event fully checks and processes an RDMA event on the
  * Connection Manager event channel.
+ *
+ * event_channel: pointer to the CM event channel.
+ * event: pointer to the event pointer.
+ * expected_type: expected enum type of the RDMA CM event.
  */
-int process_rdma_event(struct rdma_event_channel *,
-                       struct rdma_cm_event **,
-                       enum rdma_cm_event_type);
+int process_rdma_event(struct rdma_event_channel *event_channel,
+                       struct rdma_cm_event **event,
+                       enum rdma_cm_event_type expected_type);
+
+/*
+ * process_work_completion_event processes expected_wc Work Completion events
+ * on the completion_channel IO Completion Channel. WC elements are stored in
+ * the ibv_wc array starting at the wc pointer.
+ *
+ * Returns the total number of WC elements successfully retrieved from the CQ.
+ *
+ * Manpages: https://man7.org/linux/man-pages/man3/ibv_ack_cq_events.3.html
+ *           https://linux.die.net/man/3/ibv_req_notify_cq
+ *           https://man7.org/linux/man-pages/man3/ibv_poll_cq.3.html
+ *           https://linux.die.net/man/3/ibv_ack_cq_events
+ * RDMAmojo: https://www.rdmamojo.com/2013/03/09/ibv_get_cq_event/
+ *           https://www.rdmamojo.com/2013/02/22/ibv_req_notify_cq/
+ *           https://www.rdmamojo.com/2013/02/15/ibv_poll_cq/
+ *           https://www.rdmamojo.com/2013/03/16/ibv_ack_cq_events/
+ */
+int process_work_completion_event(struct ibv_comp_channel *completion_channel,
+                                  struct ibv_wc *wc,
+                                  int expected_wc);
+
+/*
+ * Creates and registers a buffer of size size_bytes as a Memory Region under
+ * the pd Protection Domain.
+ *
+ * Returns an ibv_mr pointer if successful, NULL otherwise.
+ */
+struct ibv_mr *create_rdma_buffer(struct ibv_pd *pd, uint32_t size_bytes,
+                         enum ibv_access_flags perms);
 
 #endif /* RDMA_COMMON_H */

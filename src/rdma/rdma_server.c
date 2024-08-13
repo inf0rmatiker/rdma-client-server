@@ -42,7 +42,7 @@ static struct ibv_recv_wr client_recv_wr, *bad_client_recv_wr = NULL;
 static struct ibv_send_wr server_send_wr, *bad_server_send_wr = NULL;
 
 /* Dynamically allocated and registered memory accessible by the client */
-char *server_buffer = NULL;
+void *server_buffer = NULL;
 
 /* Cleans up all allocated/registered resources, in reverse order that they were
  * created, conditionally if they've been allocated or initalized.
@@ -54,8 +54,21 @@ void cleanup_server()
                 free(server_buffer);
         }
 
-        /* Destroy client metadata buffer */
+        /* De-register server buffer memory region */
+        if (server_buffer_mr) {
+                printf("Deregistering ibv_mr server_buffer_mr\n");
+                ibv_dereg_mr(server_buffer_mr);
+        }
+
+        /* De-register server metadata memory region */
+        if (server_metadata_mr) {
+                printf("Deregistering ibv_mr server_metadata_mr\n");
+                ibv_dereg_mr(server_metadata_mr);
+        }
+
+        /* De-register client metadata memory region */
         if (client_metadata_mr) {
+                printf("Deregistering ibv_mr client_metadata_mr\n");
                 ibv_dereg_mr(client_metadata_mr);
         }
 
@@ -319,6 +332,13 @@ int setup_communication_resources()
         return ret;
 }
 
+/*
+ * Pre-posts a receive buffer to capture metadata about the client:
+ * 1. Register our client_metadata memory section as a memory region (MR).
+ * 2. Fill out a scatter-gather entry (SGE) with info about the MR.
+ * 3. Add SGE to work request (WR).
+ * 4. Post WR to receive buffer of client QP.
+ */
 static int post_metadata_recv_buffer()
 {
         /* Register memory region (MR) where client metadata will be stored */
@@ -358,12 +378,18 @@ static int post_metadata_recv_buffer()
         return ret;
 }
 
+/*
+ * Accept a client connection:
+ * 1. Fill out connection parameters for the connection we're accepting.
+ * 2. Accept the client connection using rdma_accept().
+ * 3. Wait for RDMA_CM_EVENT_ESTABLISHED event, ACKing when received.
+ */
 static int accept_client_connection()
 {
         struct rdma_conn_param conn_param;
 	struct rdma_cm_event *cm_event = NULL;
 
-        /* Before we accept a connection we have to fill out an rdma_conn_param 
+        /* Before we accept a connection we have to fill out an rdma_conn_param
          * struct containing connection properties:
          *
          * - initiator_depth: The maximum number of outstanding RDMA read and
@@ -418,6 +444,159 @@ static int accept_client_connection()
         return 0;
 }
 
+/*
+ * Exchange metadata with the client via pre-registered buffers.
+ *
+ * Manpages: https://man7.org/linux/man-pages/man3/ibv_reg_mr.3.html
+ *           https://man7.org/linux/man-pages/man3/ibv_post_send.3.html
+ * RDMAmojo: https://www.rdmamojo.com/2012/09/07/ibv_reg_mr/
+ *           https://www.rdmamojo.com/2013/01/26/ibv_post_send/
+ */
+static int exchange_metadata_with_client()
+{
+        /* We start off by receiving the metadata about the client into the
+         * pre-posted receive buffer client_metadata (we posted this in
+         * post_metadata_recv_buffer()).
+         */
+        int ret = 0;
+        int expected_wc = 1;
+        struct ibv_wc work_completions[expected_wc];
+
+        /* Wait for client to send its metadata info. We will receive a work
+         * completion (WC) notification for our pre-posted receive request.
+         */
+        ret = process_work_completion_event(
+                io_completion_channel,
+                work_completions,
+                expected_wc
+        );
+        if (ret != expected_wc) {
+                fprintf(stderr, "Failed to process %d Work Completions: ret=%d\n",
+                        expected_wc, ret);
+		return ret;
+        }
+        printf("Got %d Work Completions\n", ret);
+        print_rdma_buffer_attr(&client_metadata, 0);
+
+        /* Next, we need to satisfy the client's request for the server's
+         * metadata.
+         */
+
+        /* Allocate and register the memory region where the client will
+         * read/write the message from/to.
+         */
+        server_buffer_mr = create_rdma_buffer(
+                protection_domain,
+                client_metadata.length,  /* Size of the source message from the client */
+                (IBV_ACCESS_LOCAL_WRITE|
+                 IBV_ACCESS_REMOTE_READ|
+                 IBV_ACCESS_REMOTE_WRITE) /* Access permissions */
+        );
+        if (!server_buffer_mr) {
+                fprintf(stderr, "Failed to allocate/register server_buffer_mr\n");
+		return -1;
+        }
+
+        /* Set our server_buffer address from MR so we can free it later */
+        server_buffer = server_buffer_mr->addr;
+
+        /* We need to now send metadata about the above buffer to the client.
+         * This will complete the client's posted WR for server metadata.
+         */
+
+        /* Prepare the server metadata buffer with information about the MR
+         * we just registered above.
+         */
+        server_metadata.address = (uint64_t) server_buffer_mr->addr;
+        server_metadata.length = server_buffer_mr->length;
+        server_metadata.stag.local_stag = server_buffer_mr->lkey;
+
+        /* Register server metadata MR */
+        server_metadata_mr = ibv_reg_mr(
+                protection_domain, /* Server's PD */
+		&server_metadata, /* Server's metadata buffer */
+		sizeof(server_metadata), /* Size of server's metadata buffer */
+		IBV_ACCESS_LOCAL_WRITE /* Only allow our RDMA device to write */
+        );
+        if (!server_metadata_mr) {
+		fprintf(stderr, "Failed to register server_metadata_mr: %s\n",
+                        strerror(errno));
+		return -errno;
+	}
+
+        /* Populate the server send SGE with information about our metadata MR
+         */
+	server_send_sge.addr = (uint64_t) client_metadata_mr->addr;
+	server_send_sge.length = (uint32_t) client_metadata_mr->length;
+	server_send_sge.lkey = client_metadata_mr->lkey;
+
+        /* Link to the send WR. This is a SEND operation, meaning it will
+         * complete some RECV WR.
+         */
+        bzero(&server_send_wr, sizeof(server_send_wr));
+	server_send_wr.sg_list = &server_send_sge;
+	server_send_wr.num_sge = 1;
+	server_send_wr.opcode = IBV_WR_SEND;
+	server_send_wr.send_flags = IBV_SEND_SIGNALED;
+
+        /* Post the send WR to the client QP, containing metadata information
+         * that the client requested.
+         */
+        int ret = ibv_post_send(
+                client_queue_pair,
+                &server_send_wr,
+                &bad_server_send_wr
+        );
+        if (ret) {
+                fprintf(stderr, "Failed to send server metadata: %s\n",
+                        strerror(errno));
+		return -errno;
+        }
+        printf("Sent server metadata to client\n");
+
+        /* Process WC event for satisfying the client's WR. We can reuse the
+         * same work_completions array and expected_wc count from above.
+         */
+        ret = process_work_completion_event(
+                io_completion_channel,
+                work_completions,
+                expected_wc
+        );
+        if (ret != expected_wc) {
+                fprintf(stderr, "Failed to process %d Work Completions: ret=%d\n",
+                        expected_wc, ret);
+		return ret;
+        }
+        printf("Got %d Work Completions\n", ret);
+        return 0;
+}
+
+/*
+ * disconnect_from_client waits for an RDMA_CM_EVENT_DISCONNECTED CM event
+ * from the client, indicating the client has disconnected.
+ */
+static int disconnect_from_client()
+{
+        struct rdma_cm_event *cm_event = NULL;
+        int ret = 0;
+        ret = process_rdma_event(cm_event_channel, &cm_event,
+                                        RDMA_CM_EVENT_DISCONNECTED);
+        if (ret) {
+                fprintf(stderr, "Failed to process CM event\n");
+                return ret;
+        } else {
+                printf("Received CM event of type %s\n",
+                        rdma_event_str(cm_event->event));
+        }
+        ret = rdma_ack_cm_event(cm_event);
+        if (ret) {
+                fprintf(stderr, "Failed to ACK CM event\n");
+                ret = 0;
+        }
+
+        return ret;
+}
+
 void print_usage()
 {
         printf("Usage\n");
@@ -468,9 +647,17 @@ int main(int argc, char **argv)
                 return ret;
         }
 
+        ret = exchange_metadata_with_client();
+        if (ret) {
+                cleanup_server();
+                return ret;
+        }
 
-        /* Allocate server buffer */
-        server_buffer = (char *)calloc(4096, sizeof(char));
+        ret = disconnect_from_client();
+        if (ret) {
+                cleanup_server();
+                return ret;
+        }
 
         /* Clean up all dynamically allocated resources */
         cleanup_server();
