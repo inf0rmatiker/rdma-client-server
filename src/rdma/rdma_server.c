@@ -542,7 +542,7 @@ static int exchange_metadata_with_client()
         /* Post the send WR to the client QP, containing metadata information
          * that the client requested.
          */
-        int ret = ibv_post_send(
+        ret = ibv_post_send(
                 client_queue_pair,
                 &server_send_wr,
                 &bad_server_send_wr
