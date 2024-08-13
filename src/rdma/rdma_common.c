@@ -128,7 +128,7 @@ struct ibv_mr *create_rdma_buffer(struct ibv_pd *pd, uint32_t size_bytes,
                 return NULL;
         }
 
-        printf("Registered Memory Region %p:\n");
+        printf("Registered Memory Region %p:\n", mr);
         print_ibv_mr(mr, 0);
         return mr;
 }

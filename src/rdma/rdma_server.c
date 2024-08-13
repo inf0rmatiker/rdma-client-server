@@ -477,7 +477,7 @@ static int exchange_metadata_with_client()
 		return ret;
         }
         printf("Got %d Work Completions\n", ret);
-        printf("Now have client_metadata: ");
+        printf("Now have client_metadata:\n");
         print_rdma_buffer_attr(&client_metadata, 1);
 
         /* Next, we need to satisfy the client's request for the server's
@@ -525,14 +525,14 @@ static int exchange_metadata_with_client()
                         strerror(errno));
 		return -errno;
 	}
-        printf("Registered server_metadata_mr:");
+        printf("Registered server_metadata_mr:\n");
         print_ibv_mr(server_metadata_mr, 1);
 
         /* Populate the server send SGE with information about our metadata MR
          */
-	server_send_sge.addr = (uint64_t) client_metadata_mr->addr;
-	server_send_sge.length = (uint32_t) client_metadata_mr->length;
-	server_send_sge.lkey = client_metadata_mr->lkey;
+	server_send_sge.addr = (uint64_t) server_metadata_mr->addr;
+	server_send_sge.length = (uint32_t) server_metadata_mr->length;
+	server_send_sge.lkey = server_metadata_mr->lkey;
 
         /* Link to the send WR. This is a SEND operation, meaning it will
          * complete some RECV WR.
