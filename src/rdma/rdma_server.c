@@ -347,10 +347,10 @@ static int post_metadata_recv_buffer()
                                         sizeof(client_metadata),
                                         IBV_ACCESS_LOCAL_WRITE);
         if(!client_metadata_mr){
-		fprintf(stderr, "Failed to register server_metadata_mr: -ENOMEM\n");
+		fprintf(stderr, "Failed to register client_metadata_mr: -ENOMEM\n");
 		return -ENOMEM;
 	}
-        printf("Successfully registered server_metadata_mr:\n");
+        printf("Successfully registered client_metadata_mr:\n");
         print_ibv_mr(client_metadata_mr, 1);
 
         /* Initialize the client receive SGE with where we want the data
