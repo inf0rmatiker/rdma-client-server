@@ -359,6 +359,7 @@ static int post_metadata_recv_buffer()
         client_recv_sge.addr = (uint64_t) client_metadata_mr->addr;
         client_recv_sge.length = client_metadata_mr->length;
         client_recv_sge.lkey = client_metadata_mr->lkey;
+
         /* Create a WR with the client receive SGE. */
         memset(&client_recv_wr, 0, sizeof(client_recv_wr));
         client_recv_wr.sg_list = &client_recv_sge;
@@ -476,7 +477,8 @@ static int exchange_metadata_with_client()
 		return ret;
         }
         printf("Got %d Work Completions\n", ret);
-        print_rdma_buffer_attr(&client_metadata, 0);
+        printf("Now have client_metadata: ");
+        print_rdma_buffer_attr(&client_metadata, 1);
 
         /* Next, we need to satisfy the client's request for the server's
          * metadata.
@@ -523,6 +525,8 @@ static int exchange_metadata_with_client()
                         strerror(errno));
 		return -errno;
 	}
+        printf("Registered server_metadata_mr:");
+        print_ibv_mr(server_metadata_mr, 1);
 
         /* Populate the server send SGE with information about our metadata MR
          */

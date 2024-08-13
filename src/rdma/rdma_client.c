@@ -482,6 +482,8 @@ static int exchange_metadata_with_server()
                         strerror(errno));
 		return -errno;
         }
+        printf("Registered client_src_mr: ");
+        print_ibv_mr(client_src_mr, 1);
 
         /* Prepare the client metadata buffer with information about the MR we
          * just registered above.
@@ -489,6 +491,8 @@ static int exchange_metadata_with_server()
 	client_metadata.address = (uint64_t) client_src_mr->addr;
 	client_metadata.length = client_src_mr->length;
 	client_metadata.stag.local_stag = client_src_mr->lkey;
+        printf("Prepared client_metadata: ");
+        print_rdma_buffer_attr(&client_metadata, 1);
 
         /* Register client metadata MR */
         client_metadata_mr = ibv_reg_mr(
@@ -502,6 +506,8 @@ static int exchange_metadata_with_server()
                         strerror(errno));
 		return -errno;
 	}
+        printf("Registered client_metadata_mr: ");
+        print_ibv_mr(client_metadata_mr, 1);
 
         /* Populate the client send SGE with information about our metadata MR
          */
@@ -531,6 +537,7 @@ static int exchange_metadata_with_server()
                         strerror(errno));
 		return -errno;
         }
+        printf("Successfully sent WR for client metadata\n");
 
         /* Process two WCs, one for our send, and one for receiving the
          * server's metadata that we pre-posted earlier.
@@ -548,7 +555,8 @@ static int exchange_metadata_with_server()
 		return ret;
         }
         printf("Got %d Work Completions\n", ret);
-        print_rdma_buffer_attr(&server_metadata, 0);
+        printf("Now have server_metadata: ");
+        print_rdma_buffer_attr(&server_metadata, 1);
 }
 
 static void print_usage()
