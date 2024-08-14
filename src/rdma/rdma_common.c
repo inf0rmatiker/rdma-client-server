@@ -864,6 +864,22 @@ void print_ibv_send_wr(const struct ibv_send_wr *send_wr, int i)
         printf("%s\tsg_list: %p\n", indent, send_wr->sg_list);
         printf("%s\tnum_sge: %d\n", indent, send_wr->num_sge);
         printf("%s\topcode: %s\n", indent, ibv_wr_opcode_str(send_wr->opcode));
+
+        struct flag_str ibv_send_flags_strs[] = {
+                {IBV_SEND_FENCE, "IBV_SEND_FENCE"},
+                {IBV_SEND_SIGNALED, "IBV_SEND_SIGNALED"},
+                {IBV_SEND_SOLICITED, "IBV_SEND_SOLICITED"},
+                {IBV_SEND_INLINE, "IBV_SEND_INLINE"},
+                {IBV_SEND_IP_CSUM, "IBV_SEND_IP_CSUM"}
+        };
+        char send_flags_str[24] = { 0 };
+        bitflags_to_str(ibv_send_flags_strs, 5, send_wr->send_flags,
+                        send_flags_str);
+        printf("%s\tsend_flags: %s\n", indent, send_flags_str);
+
+        printf("%s\twr{ rdma{ remote_addr: %p, rkey: %u } }\n", indent,
+               send_wr->wr.rdma.remote_addr, send_wr->wr.rdma.rkey);
+
         printf("%s\t...\n", indent);
         printf("%s}\n", indent);
 }
