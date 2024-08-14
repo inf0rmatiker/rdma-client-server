@@ -630,7 +630,7 @@ static int client_write_message()
         }
         printf("Got %d Work Completions\n", ret);
 
-        return ret;
+        return 0;
 }
 
 /* Reads the message from the remote server's buffer to a destination buffer on
