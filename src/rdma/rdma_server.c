@@ -498,6 +498,9 @@ static int exchange_metadata_with_client()
                 fprintf(stderr, "Failed to allocate/register server_buffer_mr\n");
 		return -1;
         }
+        printf("Allocated server_buffer_mr at %p of size %u:\n",
+               server_buffer_mr->addr, server_buffer_mr->length);
+        print_ibv_mr(server_buffer_mr, 1);
 
         /* Set our server_buffer address from MR so we can free it later */
         server_buffer = server_buffer_mr->addr;
@@ -587,7 +590,7 @@ static int disconnect_from_client()
         struct rdma_cm_event *cm_event = NULL;
         int ret = 0;
         ret = process_rdma_event(cm_event_channel, &cm_event,
-                                        RDMA_CM_EVENT_DISCONNECTED);
+                                 RDMA_CM_EVENT_DISCONNECTED);
         if (ret) {
                 fprintf(stderr, "Failed to process CM event\n");
                 return ret;
