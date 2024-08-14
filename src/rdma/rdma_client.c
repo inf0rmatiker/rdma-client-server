@@ -629,7 +629,6 @@ static int client_write_message()
 		return ret;
         }
         printf("Got %d Work Completions\n", ret);
-
         return 0;
 }
 
@@ -671,6 +670,7 @@ static int client_read_message()
         print_ibv_mr(client_dst_mr, 0);
 
         /* Populate send SGE with information about where we're writing to */
+        memset(&client_send_sge, 0, sizeof(client_send_sge));
 	client_send_sge.addr = (uint64_t) client_dst_mr->addr;
 	client_send_sge.length = client_dst_mr->length;
 	client_send_sge.lkey = client_dst_mr->lkey;
