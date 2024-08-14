@@ -647,7 +647,7 @@ static int client_read_message()
         dst_buffer = calloc(strlen(src_buffer) + 1, sizeof(char));
         if (!dst_buffer) {
                 fprintf(stderr, "Failed to allocate dst_buffer! -ENOMEM\n");
-                return NULL;
+                return -ENOMEM;
         }
 
         /* Register dst_buffer as MR */
