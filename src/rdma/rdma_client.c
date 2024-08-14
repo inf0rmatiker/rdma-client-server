@@ -682,12 +682,15 @@ static int client_read_message()
          * address and rkey.
          */
         memset(&client_send_wr, 0, sizeof(client_send_wr));
+        client_send_wr.wr_id += 1;
         client_send_wr.sg_list = &client_send_sge;
 	client_send_wr.num_sge = 1;
 	client_send_wr.opcode = IBV_WR_RDMA_READ;
 	client_send_wr.send_flags = IBV_SEND_SIGNALED;
 	client_send_wr.wr.rdma.rkey = server_metadata.stag.remote_stag;
 	client_send_wr.wr.rdma.remote_addr = server_metadata.address;
+        printf("client_send_wr:\n");
+        print_ibv_send_wr(&client_send_wr, 1);
 
         /* Send WR, effectively reading the message from the server's buffer */
         ret = ibv_post_send(
