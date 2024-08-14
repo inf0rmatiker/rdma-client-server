@@ -10,9 +10,15 @@
 
 #include "rdma_common.h"
 
+/* Server default ipoib information */
 static char *server_addr = "127.0.0.1";
 static char *server_port = "7471";
-static char *message = NULL;
+
+/* Message source buffer from where we'll write to the server */
+static char *src_buffer = NULL;
+
+/* Where the message will end up after we read it back from the server */
+static char *dst_buffer = NULL;
 
 /* --- Connection Manager data structures for client --- */
 static struct rdma_event_channel *cm_event_channel;
@@ -39,11 +45,12 @@ static struct ibv_recv_wr server_recv_wr, *bad_server_recv_wr;
  * address are packed into these structs.
  */
 static struct rdma_buffer_attr client_metadata, server_metadata;
+
 /* IBVerbs registered memory regions */
 static struct ibv_mr *client_metadata_mr = NULL;
+static struct ibv_mr *server_metadata_mr = NULL;
 static struct ibv_mr *client_src_mr = NULL;
 static struct ibv_mr *client_dst_mr = NULL;
-static struct ibv_mr *server_metadata_mr = NULL;
 
 static void cleanup_client()
 {
@@ -75,8 +82,14 @@ static void cleanup_client()
                 }
         }
 
-        if (message) {
-                free(message);
+        if (src_buffer) {
+                printf("Freeing message buffer\n");
+                free(src_buffer);
+        }
+
+        if (dst_buffer) {
+                printf("Freeing dst_buffer\n");
+                free(dst_buffer);
         }
 
         if (client_metadata_mr) {
@@ -356,7 +369,6 @@ static int setup_queue_pairs()
  * was registered under. Creates a scatter-gather entry for where the requested
  * data. Lastly, posts the list of Work Requests (WRs)
  *
- *
  * Manpages: https://man7.org/linux/man-pages/man3/ibv_reg_mr.3.html
  *           https://man7.org/linux/man-pages/man3/ibv_post_recv.3.html
  * RDMAmojo: https://www.rdmamojo.com/2012/09/07/ibv_reg_mr/,
@@ -471,8 +483,8 @@ static int exchange_metadata_with_server()
          */
         client_src_mr = ibv_reg_mr(
                 protection_domain, /* Client's PD */
-                message, /* Source message buffer we're registering */
-                strlen(message), /* Size of message buffer, in bytes */
+                src_buffer, /* Source message buffer we're registering */
+                strlen(src_buffer), /* Size of message buffer, in bytes */
                 (IBV_ACCESS_LOCAL_WRITE|
 	         IBV_ACCESS_REMOTE_READ|
 		 IBV_ACCESS_REMOTE_WRITE) /* Access flags for message */
@@ -559,6 +571,155 @@ static int exchange_metadata_with_server()
         print_rdma_buffer_attr(&server_metadata, 1);
 }
 
+/*
+ * Writes the message from the client source buffer to the remote server's
+ * buffer. Since we've already gotten the server metadata through the metadata
+ * exchange, we know the address, length, and rkey to use for the remote buffer.
+ */
+static int client_write_message()
+{
+        int ret = 0;
+
+        /* Populate send SGE with information about where we're writing from */
+	client_send_sge.addr = (uint64_t) client_src_mr->addr;
+	client_send_sge.length = client_src_mr->length;
+	client_send_sge.lkey = client_src_mr->lkey;
+
+        /* Fill out client send WR with SGE, this tells the RDMA device what
+         * data we're sending. Set opcode to WRITE (instead of SEND like before)
+         * because we're writing data directly to the server's registered
+         * buffer, rather than completing a recv request. In order to do this
+         * direct memory write, we need to provide the remote address and rkey.
+         */
+        memset(&client_send_wr, 0, sizeof(client_send_wr));
+	client_send_wr.sg_list = &client_send_sge;
+	client_send_wr.num_sge = 1;
+	client_send_wr.opcode = IBV_WR_RDMA_WRITE;
+	client_send_wr.send_flags = IBV_SEND_SIGNALED;
+	client_send_wr.wr.rdma.rkey = server_metadata.stag.remote_stag;
+	client_send_wr.wr.rdma.remote_addr = server_metadata.address;
+        printf("Prepared client_send_wr for RDMA write:\n");
+        print_ibv_send_wr(&client_send_wr, 1);
+
+        /* Send WR, effectively writing our message to server's buffer */
+        ret = ibv_post_send(
+                queue_pair,
+		&client_send_wr,
+	        &bad_client_send_wr
+        );
+	if (ret) {
+		fprintf(stderr, "Failed to write message to server: %s\n",
+                        strerror(errno));
+		return -errno;
+	}
+
+        /* Now, process WC for our write */
+        int expected_wc = 1;
+        struct ibv_wc work_completions[expected_wc];
+        ret = process_work_completion_event(
+                completion_channel,
+                work_completions,
+                expected_wc
+        );
+        if (ret != expected_wc) {
+                fprintf(stderr, "Failed to process %d Work Completions: ret=%d\n",
+                        expected_wc, ret);
+		return ret;
+        }
+        printf("Got %d Work Completions\n", ret);
+
+        return ret;
+}
+
+/* Reads the message from the remote server's buffer to a destination buffer on
+ * the client. The server's buffer should have already been written to via
+ * client_message_write(). Since we've already gotten the server metadata
+ * through the metadata exchange, we know the address, length, and rkey to use
+ * for the remote buffer.
+ */
+static int client_read_message()
+{
+        int ret = 0;
+
+        /* First, we need to allocate enough space to read the message back.
+         * (length of message + 1 for null terminator)
+         */
+        dst_buffer = calloc(strlen(src_buffer) + 1, sizeof(char));
+        if (!dst_buffer) {
+                fprintf(stderr, "Failed to allocate dst_buffer! -ENOMEM\n");
+                return NULL;
+        }
+
+        /* Register dst_buffer as MR */
+        client_dst_mr = ibv_reg_mr(
+                protection_domain,
+                dst_buffer,
+                sizeof(dst_buffer),
+                (IBV_ACCESS_LOCAL_WRITE|
+                 IBV_ACCESS_REMOTE_WRITE|
+                 IBV_ACCESS_REMOTE_READ)
+        );
+        if (!client_dst_mr) {
+                fprintf(stderr, "Failed to register dst_buffer as MR: %s\n",
+                        strerror(errno));
+                return -errno;
+        }
+
+        printf("Registered dst_buffer Memory Region %p:\n", client_dst_mr);
+        print_ibv_mr(client_dst_mr, 0);
+
+        /* Populate send SGE with information about where we're writing to */
+	client_send_sge.addr = (uint64_t) client_dst_mr->addr;
+	client_send_sge.length = client_dst_mr->length;
+	client_send_sge.lkey = client_dst_mr->lkey;
+
+        /* Fill out client send WR with SGE, this tells the RDMA device what
+         * data we're reading. Set opcode to READ because we're reading data
+         * directly from the server's registered memory buffer to our own.
+         * In order to do this direct memory read, we need to provide the remote
+         * address and rkey.
+         */
+        memset(&client_send_wr, 0, sizeof(client_send_wr));
+        client_send_wr.sg_list = &client_send_sge;
+	client_send_wr.num_sge = 1;
+	client_send_wr.opcode = IBV_WR_RDMA_READ;
+	client_send_wr.send_flags = IBV_SEND_SIGNALED;
+	client_send_wr.wr.rdma.rkey = server_metadata.stag.remote_stag;
+	client_send_wr.wr.rdma.remote_addr = server_metadata.address;
+
+        /* Send WR, effectively reading the message from the server's buffer */
+        ret = ibv_post_send(
+                queue_pair,
+		&client_send_wr,
+	        &bad_client_send_wr
+        );
+	if (ret) {
+		fprintf(stderr, "Failed to read message from server: %s\n",
+                        strerror(errno));
+		return -errno;
+	}
+
+        /* Now, process WC for our write */
+        int expected_wc = 1;
+        struct ibv_wc work_completions[expected_wc];
+        ret = process_work_completion_event(
+                completion_channel,
+                work_completions,
+                expected_wc
+        );
+        if (ret != expected_wc) {
+                fprintf(stderr, "Failed to process %d Work Completions: ret=%d\n",
+                        expected_wc, ret);
+		return ret;
+        }
+        printf("Got %d Work Completions\n", ret);
+
+        /* Make sure to null-terminate the dst buffer before printing it */
+        dst_buffer[strlen(src_buffer)] = '\0';
+        printf("Client read complete. dst_buffer contents: '%s'\n", dst_buffer);
+        return ret;
+}
+
 static void print_usage()
 {
         printf("Usage:\n\t./rdma-client -m <message> -s <server_host> -p <server_port>\n");
@@ -575,8 +736,8 @@ int main(int argc, char **argv)
                         case 'm':
                                 /* Allocate some space for our message */
                                 message_len = strlen(optarg);
-                                message = calloc(message_len + 1, sizeof(char));
-                                if (!message) {
+                                src_buffer = calloc(message_len + 1, sizeof(char));
+                                if (!src_buffer) {
                                         fprintf(stderr, "Failed to allocate memory for message\n");
                                         return -ENOMEM;
                                 }
@@ -585,7 +746,9 @@ int main(int argc, char **argv)
                                  * allocated message buffer. We'll free it when
                                  * we clean up the client resources.
                                  */
-                                strncpy(message, optarg, message_len);
+                                strncpy(src_buffer, optarg, message_len);
+                                printf("src_buffer contents: '%s'\n",
+                                       src_buffer);
                                 break;
                         case 's':
                                 server_addr = optarg;
@@ -600,7 +763,7 @@ int main(int argc, char **argv)
 
         }
 
-        if (!message) {
+        if (!src_buffer) {
                 printf("Please provide a string message to send/recv\n");
                 print_usage();
                 return 1;
@@ -649,6 +812,12 @@ int main(int argc, char **argv)
         }
 
         ret = exchange_metadata_with_server();
+        if (ret) {
+                cleanup_client();
+                return ret;
+        }
+
+        ret = client_write_message();
         if (ret) {
                 cleanup_client();
                 return ret;

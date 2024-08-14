@@ -189,6 +189,38 @@ static void ibv_qp_type_to_str(enum ibv_qp_type value, char *res)
         }
 }
 
+static char* ibv_wr_opcode_str(enum ibv_wr_opcode opcode)
+{
+        switch (opcode) {
+                case IBV_WR_RDMA_WRITE:
+                        return "IBV_WR_RDMA_WRITE";
+                case IBV_WR_RDMA_WRITE_WITH_IMM:
+                        return "IBV_WR_RDMA_WRITE_WITH_IMM";
+                case IBV_WR_SEND:
+                        return "IBV_WR_SEND";
+	        case IBV_WR_SEND_WITH_IMM:
+                        return "IBV_WR_SEND_WITH_IMM";
+	        case IBV_WR_RDMA_READ:
+                        return "IBV_WR_RDMA_READ";
+	        case IBV_WR_ATOMIC_CMP_AND_SWP:
+                        return "IBV_WR_ATOMIC_CMP_AND_SWP";
+	        case IBV_WR_ATOMIC_FETCH_AND_ADD:
+                        return "IBV_WR_ATOMIC_FETCH_AND_ADD";
+	        case IBV_WR_LOCAL_INV:
+                        return "IBV_WR_LOCAL_INV";
+	        case IBV_WR_BIND_MW:
+                        return "IBV_WR_BIND_MW";
+	        case IBV_WR_SEND_WITH_INV:
+                        return "IBV_WR_SEND_WITH_INV";
+	        case IBV_WR_TSO:
+                        return "IBV_WR_TSO";
+	        case IBV_WR_DRIVER1:
+                        return "IBV_WR_DRIVER1";
+                default:
+                        return "UNKNOWN";
+        }
+}
+
 static void ibv_node_type_to_str(enum ibv_node_type value, char *res)
 {
         switch (value) {
@@ -763,6 +795,77 @@ void print_ibv_recv_wr(const struct ibv_recv_wr *recv_wr, int i)
         } else {
                 printf("%s}\n", indent);
         }
+}
+
+void print_ibv_send_wr(const struct ibv_send_wr *send_wr, int i)
+{
+        // struct ibv_send_wr {
+        // 	uint64_t		wr_id;
+        // 	struct ibv_send_wr      *next;
+        // 	struct ibv_sge	        *sg_list;
+        // 	int			num_sge;
+        // 	enum ibv_wr_opcode	opcode;
+        // 	unsigned int		send_flags;
+        // 	/* When opcode is *_WITH_IMM: Immediate data in network byte order.
+        // 	 * When opcode is *_INV: Stores the rkey to invalidate
+        // 	 */
+        // 	union {
+        // 		__be32			imm_data;
+        // 		uint32_t		invalidate_rkey;
+        // 	};
+        // 	union {
+        // 		struct {
+        // 			uint64_t	remote_addr;
+        // 			uint32_t	rkey;
+        // 		} rdma;
+        // 		struct {
+        // 			uint64_t	remote_addr;
+        // 			uint64_t	compare_add;
+        // 			uint64_t	swap;
+        // 			uint32_t	rkey;
+        // 		} atomic;
+        // 		struct {
+        // 			struct ibv_ah  *ah;
+        // 			uint32_t	remote_qpn;
+        // 			uint32_t	remote_qkey;
+        // 		} ud;
+        // 	} wr;
+        // 	union {
+        // 		struct {
+        // 			uint32_t    remote_srqn;
+        // 		} xrc;
+        // 	} qp_type;
+        // 	union {
+        // 		struct {
+        // 			struct ibv_mw	*mw;
+        // 			uint32_t		rkey;
+        // 			struct ibv_mw_bind_info	bind_info;
+        // 		} bind_mw;
+        // 		struct {
+        // 			void		       *hdr;
+        // 			uint16_t		hdr_sz;
+        // 			uint16_t		mss;
+        // 		} tso;
+        // 	};
+        // };
+
+        char indent[i+1];
+        memset(indent, '\t', i);
+        indent[i] = '\0';
+
+        if (!send_wr) {
+                printf("%s(null)\n", indent);
+                return;
+        }
+
+        printf("%sibv_send_wr{\n", indent);
+        printf("%s\twr_id: %u\n", indent, send_wr->wr_id);
+        printf("%s\tnext: %p\n", indent, send_wr->next);
+        printf("%s\tsg_list: %p\n", indent, send_wr->sg_list);
+        printf("%s\tnum_sge: %d\n", indent, send_wr->num_sge);
+        printf("%s\topcode: %s", indent, ibv_wr_opcode_str(send_wr->opcode));
+        printf("%s\t...\n", indent);
+        printf("%s}\n", indent);
 }
 
 void print_rdma_buffer_attr(const struct rdma_buffer_attr *rba, int i)
