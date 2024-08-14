@@ -584,9 +584,6 @@ static int exchange_metadata_with_client()
  */
 static int disconnect_from_client()
 {
-        printf("Before we disconnect: printing contents of server buffer\n");
-        printf("server_buffer: '%s'\n", (char *)server_buffer);
-
         struct rdma_cm_event *cm_event = NULL;
         int ret = 0;
         ret = process_rdma_event(cm_event_channel, &cm_event,
@@ -603,6 +600,9 @@ static int disconnect_from_client()
                 fprintf(stderr, "Failed to ACK CM event\n");
                 ret = 0;
         }
+
+        printf("Before we leave: printing contents of server buffer\n");
+        printf("server_buffer: '%s'\n", (char *)server_buffer);
 
         return ret;
 }
