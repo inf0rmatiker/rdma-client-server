@@ -863,7 +863,7 @@ void print_ibv_send_wr(const struct ibv_send_wr *send_wr, int i)
         printf("%s\tnext: %p\n", indent, send_wr->next);
         printf("%s\tsg_list: %p\n", indent, send_wr->sg_list);
         printf("%s\tnum_sge: %d\n", indent, send_wr->num_sge);
-        printf("%s\topcode: %s", indent, ibv_wr_opcode_str(send_wr->opcode));
+        printf("%s\topcode: %s\n", indent, ibv_wr_opcode_str(send_wr->opcode));
         printf("%s\t...\n", indent);
         printf("%s}\n", indent);
 }
