@@ -645,7 +645,8 @@ static int client_read_message()
         /* First, we need to allocate enough space to read the message back.
          * (length of message + 1 for null terminator)
          */
-        dst_buffer = calloc(strlen(src_buffer) + 1, sizeof(char));
+        size_t buffer_size = strlen(src_buffer) + 1;
+        dst_buffer = calloc(buffer_size, 1);
         if (!dst_buffer) {
                 fprintf(stderr, "Failed to allocate dst_buffer! -ENOMEM\n");
                 return -ENOMEM;
@@ -655,7 +656,7 @@ static int client_read_message()
         client_dst_mr = ibv_reg_mr(
                 protection_domain,
                 dst_buffer,
-                sizeof(dst_buffer),
+                buffer_size - 1,
                 (IBV_ACCESS_LOCAL_WRITE|
                  IBV_ACCESS_REMOTE_WRITE|
                  IBV_ACCESS_REMOTE_READ)
@@ -667,7 +668,7 @@ static int client_read_message()
         }
 
         printf("Registered dst_buffer Memory Region %p:\n", client_dst_mr);
-        print_ibv_mr(client_dst_mr, 0);
+        print_ibv_mr(client_dst_mr, 1);
 
         /* Populate send SGE with information about where we're writing to */
         memset(&client_send_sge, 0, sizeof(client_send_sge));
