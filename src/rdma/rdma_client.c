@@ -569,6 +569,8 @@ static int exchange_metadata_with_server()
         printf("Got %d Work Completions\n", ret);
         printf("Now have server_metadata:\n");
         print_rdma_buffer_attr(&server_metadata, 1);
+
+        return 0;
 }
 
 /*
@@ -818,6 +820,12 @@ int main(int argc, char **argv)
         }
 
         ret = client_write_message();
+        if (ret) {
+                cleanup_client();
+                return ret;
+        }
+
+        ret = client_read_message();
         if (ret) {
                 cleanup_client();
                 return ret;
